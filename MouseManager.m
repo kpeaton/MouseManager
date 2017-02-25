@@ -18,6 +18,7 @@ classdef MouseManager < handle
 %     - Create hoverEnabled array property to distiguish
 %     - Merge add_clickable and add_hoverable (add_managed?)
 % - Add help!
+%   - Fix help for public methods!
 % - Add disp method to show table of function handles?
 
 % Author: Ken Eaton
