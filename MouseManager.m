@@ -12,11 +12,6 @@ classdef MouseManager < handle
 % - Is the use of drawnow limitrate OK?!
 % - drawnow is not advised to use in user functions!
 % - Add listeners for object deletions and WindowFcn changes!
-% - Allow an object to appear in only one of clickList or hoverList!
-%   - Allow moving from one to the other?
-%   - COMBINE LISTS???
-%     - Create hoverEnabled array property to distiguish
-%     - Merge add_clickable and add_hoverable (add_managed?)
 % - Add help!
 %   - Fix help for public methods!
 % - Add disp method to show table of function handles?
@@ -29,23 +24,23 @@ classdef MouseManager < handle
 
 %~~~Property blocks~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  properties (SetAccess = immutable)
   %------------------------------------------------------------------------
-  % Properties that need to be defined on construction.
+  properties (SetAccess = immutable)
+  %   Properties that need to be defined on construction.
   %------------------------------------------------------------------------
     hFigure
   end
 
-  properties (SetAccess = private)
   %------------------------------------------------------------------------
-  % Properties that are modified by class methods only.
+  properties (SetAccess = private)
+  %   Properties that are modified by class methods only.
   %------------------------------------------------------------------------
     enabled logical = false
   end
 
-  properties (Access = private)
   %------------------------------------------------------------------------
-  % Private properties.
+  properties (Access = private)
+  %   Private properties.
   %------------------------------------------------------------------------
     isActive logical = false
     selectionType = 'none'
@@ -53,35 +48,25 @@ classdef MouseManager < handle
     itemIndex
     hoverRegion
     scrollEventData
-
+    % Move below to property section above?
     itemList
     isHoverable
     itemFcnTable
     defaultHoverFcn
-
-    clickList
-    clickIndex
-    clickFcnTable
-    hoverList
-    hoverIndex
-    hoverFcnTable
-
   end
 
 %~~~Event blocks~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 %~~~Method blocks~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  methods
   %------------------------------------------------------------------------
-  % Public methods.
+  methods
+  %   Public methods.
   %------------------------------------------------------------------------
 
     %----------------------------------------------------------------------
     function obj = MouseManager(hFigure)
-    %
     %   MouseManager constructor.
-    %
     %----------------------------------------------------------------------
 
       if (nargin > 0)
@@ -96,9 +81,7 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     function enable(obj, newState)
-    %
     %   Function for enabling/disabling mouse control.
-    %
     %----------------------------------------------------------------------
 
       % Convert character string input into a logical:
@@ -135,9 +118,7 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     function add_item(obj, hItem, varargin)
-    %
     %   Function for adding interactive control for a graphics object.
-    %
     %----------------------------------------------------------------------
 
       % Add the new graphics object if it is not in the list already:
@@ -183,10 +164,8 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     function default_hover_fcn(obj, hoverFcn)
-    %
     %   Function for adding a default hover function (evaluates when the
     %   mouse is not hovering over any hoverable items).
-    %
     %----------------------------------------------------------------------
 
       if ~isempty(hoverFcn)
@@ -200,9 +179,7 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     function mouse_op(obj, ~, eventData, mouseOperation)
-    %
     %   Function that evaluates mouse operations.
-    %
     %----------------------------------------------------------------------
 
       switch mouseOperation
@@ -261,16 +238,14 @@ classdef MouseManager < handle
 
   end
 
-  methods (Access = private)
   %------------------------------------------------------------------------
-  % Private methods.
+  methods (Access = private)
+  %   Private methods.
   %------------------------------------------------------------------------
 
     %----------------------------------------------------------------------
     function clickSelected = click_selected(obj)
-    %
     %   Function for checking if an item was last selected by click.
-    %
     %----------------------------------------------------------------------
 
       obj.itemIndex = [];
@@ -284,9 +259,7 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     function hoverSelected = hover_selected(obj)
-    %
     %   Function for checking if an item was last selected by hovering.
-    %
     %----------------------------------------------------------------------
 
       obj.itemIndex = [];
@@ -307,23 +280,16 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     function evaluate_operation(obj, oper)
-    %
     %   Function for fetching and evaluating a mouse operation.
-    %
     %----------------------------------------------------------------------
-%START HERE!
-      if ~isempty(obj.clickIndex)
-        fcn = obj.clickFcnTable(obj.clickIndex).(oper).(obj.selectionType);
-        if ~isempty(fcn)
-          fcn(obj.clickList(obj.clickIndex), obj.event_data(oper));
-        end
-      elseif ~isempty(obj.hoverIndex)
-        fcn = obj.hoverFcnTable(obj.hoverIndex).(oper);
+
+      if ~isempty(obj.itemIndex)
+        fcn = obj.itemFcnTable(obj.itemIndex).(oper);
         if isstruct(fcn)
           fcn = fcn.(obj.selectionType);
         end
         if ~isempty(fcn)
-          fcn(obj.hoverList(obj.hoverIndex), obj.event_data(oper));
+          fcn(obj.itemList(obj.itemIndex), obj.event_data(oper));
         end
       elseif strcmp(oper, 'hover') && ~isempty(obj.defaultHoverFcn)
         obj.defaultHoverFcn([], obj.event_data(oper));
@@ -333,9 +299,7 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     function eventData = event_data(obj, oper)
-    %
     %   Function to create an event data structure.
-    %
     %----------------------------------------------------------------------
 
       eventData = struct('operation', oper, ...
@@ -348,16 +312,14 @@ classdef MouseManager < handle
 
   end
 
-  methods (Access = private, Static)
   %------------------------------------------------------------------------
-  % Static helper functions.
+  methods (Access = private, Static)
+  %   Static helper functions.
   %------------------------------------------------------------------------
 
     %----------------------------------------------------------------------
-    function newEntry = click_fcn_table_entry
-    %
-    %   Function to create a new entry for clickFcnTable.
-    %
+    function newEntry = fcn_table_entry
+    %   Function to create a new entry for itemFcnTable.
     %----------------------------------------------------------------------
 
       selectionStruct = struct('normal', [], ...
@@ -367,28 +329,15 @@ classdef MouseManager < handle
                                'none', []);
       newEntry = struct('click', selectionStruct, ...
                         'drag', selectionStruct, ...
-                        'release', selectionStruct);
-
-    end
-
-    %----------------------------------------------------------------------
-    function newEntry = hover_fcn_table_entry
-    %
-    %   Function to create a new entry for hoverFcnTable.
-    %
-    %----------------------------------------------------------------------
-
-      newEntry = MouseManager.click_fcn_table_entry();
-      newEntry.hover = [];
-      newEntry.scroll = [];
+                        'release', selectionStruct, ...
+                        'hover', [], ...
+                        'scroll', []);
 
     end
 
     %----------------------------------------------------------------------
     function [argList, inArgs] = parse_input(argList, inArgs)
-    %
     %   Function to parse input arguments.
-    %
     %----------------------------------------------------------------------
 
       % Check up to 3 arguments from the argument list:
