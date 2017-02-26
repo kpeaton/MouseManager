@@ -23,7 +23,7 @@ classdef MouseManager < handle
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
-% Last modified: 2/25/17
+% Last modified: 2/26/17
 % Copyright 2017 by Kenneth P. Eaton
 %--------------------------------------------------------------------------
 
@@ -50,15 +50,22 @@ classdef MouseManager < handle
     isActive logical = false
     selectionType = 'none'
     figurePoint
+    itemIndex
+    hoverRegion
+    scrollEventData
+
+    itemList
+    isHoverable
+    itemFcnTable
+    defaultHoverFcn
+
     clickList
     clickIndex
     clickFcnTable
     hoverList
     hoverIndex
     hoverFcnTable
-    hoverRegion
-    defaultHoverFcn
-    scrollEventData
+
   end
 
 %~~~Event blocks~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,66 +134,28 @@ classdef MouseManager < handle
     end
 
     %----------------------------------------------------------------------
-    function add_clickable(obj, hObject, varargin)
+    function add_item(obj, hItem, varargin)
     %
-    %   Function for adding interactive control for a clickable object.
+    %   Function for adding interactive control for a graphics object.
     %
     %----------------------------------------------------------------------
 
       % Add the new graphics object if it is not in the list already:
 
-      assert(ishandle(hObject), 'MouseManager:invalidGraphicsObject', ...
+      assert(ishandle(hItem), 'MouseManager:invalidGraphicsObject', ...
              'Argument must be a valid graphics object.');
-      newList = obj.clickList;
-      newFcnTable = obj.clickFcnTable;
-      index = find(hObject == newList);
+      newList = obj.itemList;
+      newHoverable = obj.isHoverable;
+      newFcnTable = obj.itemFcnTable;
+      index = find(hItem == newList);
       if isempty(index)
-        newList = [newList; hObject];
-        newFcnTable = [newFcnTable; MouseManager.click_fcn_table_entry()];
+        newList = [newList; hItem];
+        newHoverable = [newHoverable; false];
+        newFcnTable = [newFcnTable; MouseManager.fcn_table_entry()];
         index = numel(newList);
       end
 
       % Parse input list:
-
-      while ~isempty(varargin)
-        inArgs = {{'click', 'drag', 'release'}, ...
-                  {'normal', 'extend', 'alt', 'open'}};
-        [varargin, inArgs] = MouseManager.parse_input(varargin, inArgs);
-        for oper = inArgs{1}
-          for selection = inArgs{2}
-            newFcnTable(index).(oper{1}).(selection{1}) = inArgs{3};
-          end
-        end
-      end
-
-      % Update clickable list and function table:
-
-      obj.clickList = newList;
-      obj.clickFcnTable = newFcnTable;
-
-    end
-
-    %----------------------------------------------------------------------
-    function add_hoverable(obj, hObject, varargin)
-    %
-    %   Function for adding interactive control for a hoverable object.
-    %
-    %----------------------------------------------------------------------
-
-      % Add the new graphics object if it is not in the list already:
-
-      assert(ishandle(hObject), 'MouseManager:invalidGraphicsObject', ...
-             'Argument must be a valid graphics object.');
-      newList = obj.hoverList;
-      newFcnTable = obj.hoverFcnTable;
-      index = find(hObject == newList);
-      if isempty(index)
-        newList = [newList; hObject];
-        newFcnTable = [newFcnTable; MouseManager.hover_fcn_table_entry()];
-        index = numel(newList);
-      end
-
-      % Parse inputs:
 
       while ~isempty(varargin)
         inArgs = {{'click', 'drag', 'release', 'hover', 'scroll'}, ...
@@ -198,15 +167,17 @@ classdef MouseManager < handle
               newFcnTable(index).(oper{1}).(selection{1}) = inArgs{3};
             end
           else
+            newHoverable(index) = true;
             newFcnTable(index).(oper{1}) = inArgs{3};
           end
         end
       end
 
-      % Update hoverable list and function table:
+      % Update item list and function table:
 
-      obj.hoverList = newList;
-      obj.hoverFcnTable = newFcnTable;
+      obj.itemList = newList;
+      obj.isHoverable = newHoverable;
+      obj.itemFcnTable = newFcnTable;
 
     end
 
@@ -214,7 +185,7 @@ classdef MouseManager < handle
     function default_hover_fcn(obj, hoverFcn)
     %
     %   Function for adding a default hover function (evaluates when the
-    %   mouse is not hovering over any other hoverable objects).
+    %   mouse is not hovering over any hoverable items).
     %
     %----------------------------------------------------------------------
 
@@ -269,7 +240,6 @@ classdef MouseManager < handle
             obj.evaluate_operation('release');
             obj.isActive = false;
             obj.selectionType = 'none';
-            obj.clickIndex = [];
             obj.hover_selected();
             obj.evaluate_operation('hover');
             drawnow limitrate
@@ -299,38 +269,39 @@ classdef MouseManager < handle
     %----------------------------------------------------------------------
     function clickSelected = click_selected(obj)
     %
-    %   Function for checking if a clickable object was last selected.
+    %   Function for checking if an item was last selected by click.
     %
     %----------------------------------------------------------------------
 
-      obj.clickIndex = [];
-      if ~isempty(obj.clickList) && ~isempty(obj.hFigure.CurrentObject)
-        obj.clickIndex = find(obj.hFigure.CurrentObject == obj.clickList);
+      obj.itemIndex = [];
+      obj.hoverRegion = [];
+      if ~isempty(obj.itemList) && ~isempty(obj.hFigure.CurrentObject)
+        obj.itemIndex = find(obj.hFigure.CurrentObject == obj.itemList);
       end
-      clickSelected = ~isempty(obj.clickIndex);
+      clickSelected = ~isempty(obj.itemIndex);
 
     end
 
     %----------------------------------------------------------------------
     function hoverSelected = hover_selected(obj)
     %
-    %   Function for checking if a hoverable object is selected.
+    %   Function for checking if an item was last selected by hovering.
     %
     %----------------------------------------------------------------------
 
-      obj.hoverIndex = [];
+      obj.itemIndex = [];
       obj.hoverRegion = [];
-      for index = 1:numel(obj.hoverList)
-        hoverObject = obj.hoverList(index);
+      for index = find(obj.isHoverable.')
+        hoverObject = obj.itemList(index);
         position = getpixelposition(hoverObject, true);
         if all(obj.figurePoint >= position(1:2)) && ...
            all(obj.figurePoint <= (position(1:2) + position(3:4)))
-          obj.hoverIndex = index;
+          obj.itemIndex = index;
           obj.hoverRegion = position;
           break
         end
       end
-      hoverSelected = ~isempty(obj.hoverIndex);
+      hoverSelected = ~isempty(obj.itemIndex);
 
     end
 
@@ -340,7 +311,7 @@ classdef MouseManager < handle
     %   Function for fetching and evaluating a mouse operation.
     %
     %----------------------------------------------------------------------
-
+%START HERE!
       if ~isempty(obj.clickIndex)
         fcn = obj.clickFcnTable(obj.clickIndex).(oper).(obj.selectionType);
         if ~isempty(fcn)
