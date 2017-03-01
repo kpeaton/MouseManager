@@ -15,17 +15,16 @@ classdef MouseManager < handle
 %            MouseManager.default_hover_fcn.
 
 % TODO:
+% - Remove WindowFcns when deleted? (i.e. disable first)
 % - Do HandleVisibility or HitTest properties of objects need to be
 %   modified when added?
-% - Will mouse_op still work if private method?
 % - Allow function handle input to be a cell array (extra args)?
 % - Add disp method to show table of function handles?
 % - Add Tag property?
-% - Add listeners for object deletions and WindowFcn changes!
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
-% Last modified: 2/28/17
+% Last modified: 3/1/17
 % Copyright 2017 by Kenneth P. Eaton
 %--------------------------------------------------------------------------
 
@@ -52,12 +51,13 @@ classdef MouseManager < handle
   %------------------------------------------------------------------------
   properties (Access = private)
 
-    isActive logical = false
-    selectionType = 'none'
-    figurePoint
-    itemIndex
-    hoverRegion
-    scrollEventData
+    hListener                 % Listener for WindowButtonFcn properties.
+    isActive logical = false  % Indicates if a mouse button is active.
+    selectionType = 'none'    % Mouse button selected.
+    figurePoint               % Most recent figure CurrentPoint value.
+    itemIndex                 % Index of managed object currently active.
+    hoverRegion               % Figure-level position of managed object.
+    scrollEventData           % Event data for scroll operations.
 
   end
 
@@ -76,6 +76,13 @@ classdef MouseManager < handle
                'MouseManager:invalidFigureObject', ...
                'Argument must be a valid figure object.');
         this.hFigure = hFigure;
+        propertyNames = {'WindowButtonDownFcn', ...
+                         'WindowButtonMotionFcn', ...
+                         'WindowButtonUpFcn', ...
+                         'WindowScrollWheelFcn'};
+        this.hListener = addlistener(hFigure, propertyNames, 'PreSet', ...
+                                     @(~, ~) this.enable(false));
+        this.hListener.Enabled = false;
         addlistener(hFigure, 'ObjectBeingDestroyed', ...
                     @(~, ~) this.delete());
       end
@@ -136,9 +143,9 @@ classdef MouseManager < handle
               'WindowButtonMotionFcn', {@this.mouse_op; 'motion'}, ...
               'WindowButtonUpFcn', {@this.mouse_op; 'up'}, ...
               'WindowScrollWheelFcn', {@this.mouse_op; 'scroll'});
-          %Turn on listeners!
+          this.hListener.Enabled = true;
         else
-          %Turn off listeners!
+          this.hListener.Enabled = false;
           set(this.hFigure, 'WindowButtonDownFcn', '', ...
                             'WindowButtonMotionFcn', '', ...
                             'WindowButtonUpFcn', '', ...
@@ -205,7 +212,8 @@ classdef MouseManager < handle
       newFcnTable = this.itemFcnTable;
       newActiveOnHover = this.activeOnHover;
       index = find(hItem == newList);
-      if isempty(index)
+      isNewItem = isempty(index);
+      if isNewItem
         newList = [newList; hItem];
         newFcnTable = [newFcnTable; MouseManager.fcn_table_entry()];
         newActiveOnHover = [newActiveOnHover; false];
@@ -256,6 +264,9 @@ classdef MouseManager < handle
       this.itemList = newList;
       this.activeOnHover = newActiveOnHover;
       this.itemFcnTable = newFcnTable;
+      if isNewItem
+        addlistener(hItem, 'ObjectBeingDestroyed', @this.remove_item);
+      end
 
     end
 
@@ -292,6 +303,11 @@ classdef MouseManager < handle
       this.defaultHoverFcn = hoverFcn;
 
     end
+
+  end
+
+  %------------------------------------------------------------------------
+  methods (Access = private)
 
     %----------------------------------------------------------------------
     % Evaluate mouse operations.
@@ -351,10 +367,19 @@ classdef MouseManager < handle
 
     end
 
-  end
+    %----------------------------------------------------------------------
+    % Remove a managed graphics object.
+    function remove_item(this, hRemove, ~)
 
-  %------------------------------------------------------------------------
-  methods (Access = private)
+      if ~this.isvalid()
+        return
+      end
+      index = (hRemove == this.itemList);
+      this.itemList(index) = [];
+      this.activeOnHover(index) = [];
+      this.itemFcnTable(index) = [];
+
+    end
 
     %----------------------------------------------------------------------
     % Check if an item was last selected by clicking.
