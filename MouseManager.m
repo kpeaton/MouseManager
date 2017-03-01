@@ -1,30 +1,27 @@
 classdef MouseManager < handle
-%MouseManager   Class object for managing interactive mouse-based controls.
+%MouseManager   Create object to manage interactive mouse-based controls.
 %   MMOBJ = MouseManager(HFIGURE) will create a MouseManager object MMOBJ
 %   that provides a general-purpose interface for managing mouse-based
 %   interactions with figure objects. HFIGURE must be a valid figure
 %   handle. The lifecycle of MMOBJ is bound to HFIGURE; deleting HFIGURE
 %   will cause MMOBJ to be deleted as well.
 %
-%   Graphics objects to be managed by MMOBJ, along with their pertinent
+%   Graphics objects to be managed by MMOBJ, along with their associated
 %   callback functions, can be added using the MouseManager.add_item
 %   method. MMOBJ can be enabled/disabled using the MouseManager.enable
 %   method.
 %
-%   See also handle, MouseManager.enable, MouseManager.add_item,
+%   See also handle, MouseManager.add_item, MouseManager.enable,
 %            MouseManager.default_hover_fcn.
 
 % TODO:
-% - Do HandleVisibility and HitTest properties of objects need to be
+% - Do HandleVisibility or HitTest properties of objects need to be
 %   modified when added?
-% - Allow input of just the selection type without the operation!
-% - Add listeners for object deletions and WindowFcn changes!
-% - Add Tag property?
-% - Add check to enable() for numeric/logical input.
-% - Add help!
-%   - Fix help for public methods!
-% - Add disp method to show table of function handles?
 % - Will mouse_op still work if private method?
+% - Allow function handle input to be a cell array (extra args)?
+% - Add disp method to show table of function handles?
+% - Add Tag property?
+% - Add listeners for object deletions and WindowFcn changes!
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
@@ -37,18 +34,18 @@ classdef MouseManager < handle
   %------------------------------------------------------------------------
   properties (SetAccess = immutable)
 
-    hFigure
+    hFigure  % Figure that MouseManager object is bound to.
 
   end
 
   %------------------------------------------------------------------------
   properties (SetAccess = private)
 
-    enabled logical = false
-    itemList
-    isHoverable
-    itemFcnTable
-    defaultHoverFcn
+    enabled logical = false  % Enabled state of MouseManager object.
+    itemList         % List of managed graphics objects.
+    itemFcnTable     % Structure of function handles.
+    activeOnHover    % True if an object can be active without clicking.
+    defaultHoverFcn  % Default function for hovering over figure.
 
   end
 
@@ -72,23 +69,24 @@ classdef MouseManager < handle
   methods
 
     %----------------------------------------------------------------------
-    function obj = MouseManager(hFigure)
+    function this = MouseManager(hFigure)
 
       if (nargin > 0)
         assert(ishandle(hFigure) && strcmpi(hFigure.Type, 'figure'), ...
                'MouseManager:invalidFigureObject', ...
                'Argument must be a valid figure object.');
-        obj.hFigure = hFigure;
-        addlistener(hFigure, 'ObjectBeingDestroyed', @(~, ~) obj.delete());
+        this.hFigure = hFigure;
+        addlistener(hFigure, 'ObjectBeingDestroyed', ...
+                    @(~, ~) this.delete());
       end
 
     end
 
     %----------------------------------------------------------------------
-    function enable(obj, newState)
-    %MouseManager.enable   Enable/disable a MouseManager object.
+    function enable(this, newState)
+    %enable   Enable/disable a MouseManager object.
     %   MMOBJ.enable(NEWSTATE) will set the new enabled state of MMOBJ to
-    %   NEWSTATE. NEWSTATE can be a boolean (TRUE/FALSE) or character
+    %   NEWSTATE. NEWSTATE can be a logical (TRUE/FALSE) or character
     %   string ('on'/'off') input.
     %
     %   When enabled, the WindowButtonDownFcn, WindowButtonMotionFcn,
@@ -99,45 +97,67 @@ classdef MouseManager < handle
     %
     %   See also MouseManager.
 
-      % Convert character string input into a logical:
+      % Check input and convert into a logical:
 
-      if ischar(newState)
-        newState = lower(newState);
-        assert(ismember(newState, {'on', 'off'}), ...
-               'MouseManager:invalidInputString', ...
-               'Input must be either ''on'' or ''off''.');
-        newState = strcmp(newState, 'on');
+      switch class(newState)
+
+        case 'logical'
+
+          assert(isscalar(newState), 'MouseManager:invalidInputSize', ...
+                 'Logical input must be a scalar.');
+
+        case 'char'
+
+          newState = lower(newState);
+          assert(ismember(newState, {'on', 'off'}), ...
+                 'MouseManager:invalidInputString', ...
+                 'Input must be either ''on'' or ''off''.');
+          newState = strcmp(newState, 'on');
+
+        otherwise
+
+          try
+            newState = logical(newState);
+          catch
+            throw(MException('MouseManager:invalidInput', ...
+                             'Could not convert input to logical.'));
+          end
+          assert(isscalar(newState), 'MouseManager:invalidInputSize', ...
+                 'Logical input must be a scalar.');
+        
       end
 
-      % Add or remove callback functions as needed:
+      % Add or remove figure callback functions as needed:
 
-      if (obj.enabled ~= newState)
+      if (this.enabled ~= newState)
         if newState
-          set(obj.hFigure, ...
-              'WindowButtonDownFcn', {@obj.mouse_op; 'down'}, ...
-              'WindowButtonMotionFcn', {@obj.mouse_op; 'motion'}, ...
-              'WindowButtonUpFcn', {@obj.mouse_op; 'up'}, ...
-              'WindowScrollWheelFcn', {@obj.mouse_op; 'scroll'});
+          set(this.hFigure, ...
+              'WindowButtonDownFcn', {@this.mouse_op; 'down'}, ...
+              'WindowButtonMotionFcn', {@this.mouse_op; 'motion'}, ...
+              'WindowButtonUpFcn', {@this.mouse_op; 'up'}, ...
+              'WindowScrollWheelFcn', {@this.mouse_op; 'scroll'});
           %Turn on listeners!
         else
           %Turn off listeners!
-          set(obj.hFigure, 'WindowButtonDownFcn', '', ...
-                           'WindowButtonMotionFcn', '', ...
-                           'WindowButtonUpFcn', '', ...
-                           'WindowScrollWheelFcn', '');
+          set(this.hFigure, 'WindowButtonDownFcn', '', ...
+                            'WindowButtonMotionFcn', '', ...
+                            'WindowButtonUpFcn', '', ...
+                            'WindowScrollWheelFcn', '');
         end
-        obj.enabled = newState;
+        this.enabled = newState;
       end
 
     end
 
     %----------------------------------------------------------------------
-    function add_item(obj, hItem, varargin)
-    %MouseManager.add_item   Add interactive mouse controls for an object.
+    function add_item(this, hItem, varargin)
+    %add_item   Add interactive mouse controls for an object.
     %   MMOBJ.add_item(H, (OPER), (SELECTION), CALLBACKFCN, ...) will add a
     %   graphics object H to a MouseManager object MMOBJ such that the
     %   function CALLBACKFCN will be invoked for a given mouse operation
-    %   OPER and mouse selection SELECTION.
+    %   OPER and mouse selection SELECTION. The parent figure of H must
+    %   match the figure MMOBJ is bound to. If H is already a managed
+    %   object then CALLBACKFCN will overwrite any existing callback.
     %
     %   OPER can be any one of: 'click', 'drag', 'release', 'hover', or
     %   'scroll'. SELECTION can be any one of: 'normal' (left click),
@@ -153,42 +173,48 @@ classdef MouseManager < handle
     %   EVENTDATA will be a structure with the following fields:
     %       operation        -- Mouse operation (values above)
     %       selectionType    -- Mouse selection (values above, or 'none')
-    %       figurePoint      -- The CurrentPoint property of the linked
+    %       figurePoint      -- The CurrentPoint property of the bound
     %                           figure when CALLBACKFCN is invoked
     %       figureRegion     -- The position of H in pixels relative to the
-    %                           linked figure (from getpixelposition)
+    %                           bound figure (from getpixelposition)
     %       scrollEventData  -- Event data for scroll operations (empty
     %                           when not scrolling)
-    %   You should not have to make any calls to drawnow within
-    %   CALLBACKFCN, as graphics refreshing is handled by the MouseManager
-    %   class object.
+    %   Making calls to drawnow from within CALLBACKFCN is strongly
+    %   discouraged, as graphics refreshing is handled by the MouseManager
+    %   class object. CALLBACKFCN can be empty, in which case any existing
+    %   callback is cleared (and H is removed as a managed object if it has
+    %   no associated callbacks).
     %
     %   The input argument list can contain repeated sets of OPER,
     %   SELECTION, and CALLBACKFCN for setting more than one callback
     %   function for object H in a single call.
     %
-    %   If H is deleted at any time, all callback functions associated with
-    %   H through add_item will be removed from MMOBJ.
+    %   If H is deleted at any time, then H and any callback functions
+    %   associated with it through add_item will be removed from MMOBJ.
     %
     %   See also MouseManager, getpixelposition.
 
       % Add the new graphics object if it is not in the list already:
 
       assert(ishandle(hItem), 'MouseManager:invalidGraphicsObject', ...
-             'Argument must be a valid graphics object.');
-      newList = obj.itemList;
-      newHoverable = obj.isHoverable;
-      newFcnTable = obj.itemFcnTable;
+             'Object must be a valid graphics handle.');
+      assert(ancestor(hItem, 'figure') == this.hFigure, ...
+             'MouseManager:invalidGraphicsObject', ...
+             'Parent figure of graphics object must match bound figure.');
+      newList = this.itemList;
+      newFcnTable = this.itemFcnTable;
+      newActiveOnHover = this.activeOnHover;
       index = find(hItem == newList);
       if isempty(index)
         newList = [newList; hItem];
-        newHoverable = [newHoverable; false];
         newFcnTable = [newFcnTable; MouseManager.fcn_table_entry()];
+        newActiveOnHover = [newActiveOnHover; false];
         index = numel(newList);
       end
 
       % Parse input list:
 
+      callbackWasCleared = false;
       while ~isempty(varargin)
         inArgs = {{'click', 'drag', 'release', 'hover', 'scroll'}, ...
                   {'normal', 'extend', 'alt', 'open'}};
@@ -199,28 +225,62 @@ classdef MouseManager < handle
               newFcnTable(index).(oper{1}).(selection{1}) = inArgs{3};
             end
           else
-            newHoverable(index) = true;
             newFcnTable(index).(oper{1}) = inArgs{3};
+            newActiveOnHover(index) = true;
           end
+        end
+        callbackWasCleared = callbackWasCleared || isempty(inArgs{3});
+      end
+
+      % Perform clean-up if any callbacks were cleared:
+
+      if callbackWasCleared
+        if isempty(newFcnTable(index).hover) ...
+           && isempty(newFcnTable(index).scroll)
+          newActiveOnHover(index) = false;
+          clickFcns = struct2cell([newFcnTable(index).click; ...
+                                   newFcnTable(index).drag; ...
+                                   newFcnTable(index).release]);
+          if all(cellfun('isempty', clickFcns(:)))
+            newList(index) = [];
+            newFcnTable(index) = [];
+            newActiveOnHover(index) = [];
+          end
+        else
+          newActiveOnHover(index) = true;
         end
       end
 
-      % Update item list and function table:
+      % Update managed object information:
 
-      obj.itemList = newList;
-      obj.isHoverable = newHoverable;
-      obj.itemFcnTable = newFcnTable;
+      this.itemList = newList;
+      this.activeOnHover = newActiveOnHover;
+      this.itemFcnTable = newFcnTable;
 
     end
 
     %----------------------------------------------------------------------
-    function default_hover_fcn(obj, hoverFcn)
-    %MouseManager.default_hover_fcn   Add a default hover function.
-    %   MMOBJ.default_hover_fcn(@CALLBACKFCN) will add a callback function
+    function default_hover_fcn(this, hoverFcn)
+    %default_hover_fcn   Add a default hover function.
+    %   MMOBJ.default_hover_fcn(CALLBACKFCN) will add a callback function
     %   CALLBACKFCN to a MouseManager object MMOBJ to be evaluated when the
-    %   mouse is hovering over the parent figure window but not over any
+    %   mouse is hovering over the bound figure window but not over any
     %   other object managed by MMOBJ which has a callback defined for
     %   hovering or scrolling behavior.
+    %
+    %   CALLBACKFCN must be written to accept two input arguments: a handle
+    %   SOURCE and a structure EVENTDATA. SOURCE will be empty, and
+    %   EVENTDATA will be a structure with the following fields:
+    %       operation        -- Mouse operation, set to 'hover'
+    %       selectionType    -- Mouse selection, set to 'none'
+    %       figurePoint      -- The CurrentPoint property of the bound
+    %                           figure when CALLBACKFCN is invoked
+    %       figureRegion     -- Empty
+    %       scrollEventData  -- Empty
+    %   Making calls to drawnow from within CALLBACKFCN is strongly
+    %   discouraged, as graphics refreshing is handled by the MouseManager
+    %   class object. CALLBACKFCN can be empty, in which case any existing
+    %   default hover function is removed.
     %
     %   See also MouseManager, MouseManager.add_item.
 
@@ -229,61 +289,61 @@ classdef MouseManager < handle
                'MouseManager:invalidFunctionHandle', ...
                'Function handle argument is invalid.');
       end
-      obj.defaultHoverFcn = hoverFcn;
+      this.defaultHoverFcn = hoverFcn;
 
     end
 
     %----------------------------------------------------------------------
     % Evaluate mouse operations.
-    function mouse_op(obj, ~, eventData, mouseOperation)
+    function mouse_op(this, ~, eventData, mouseOperation)
 
       switch mouseOperation
 
         case 'down'
 
-          if (~obj.isActive)
-            obj.figurePoint = obj.hFigure.CurrentPoint;
-            obj.selectionType = obj.hFigure.SelectionType;
-            obj.scrollEventData = [];
-            if obj.click_selected() || obj.hover_selected()
-              obj.isActive = true;
-              obj.evaluate_operation('click');
+          if (~this.isActive)
+            this.figurePoint = this.hFigure.CurrentPoint;
+            this.selectionType = this.hFigure.SelectionType;
+            this.scrollEventData = [];
+            if this.click_selected() || this.hover_selected()
+              this.isActive = true;
+              this.evaluate_operation('click');
               drawnow limitrate
             end
           end
 
         case 'motion'
 
-          obj.figurePoint = obj.hFigure.CurrentPoint;
-          if obj.isActive
-            obj.evaluate_operation('drag');
+          this.figurePoint = this.hFigure.CurrentPoint;
+          if this.isActive
+            this.evaluate_operation('drag');
           else
-            obj.scrollEventData = [];
-            obj.hover_selected();
-            obj.evaluate_operation('hover');
+            this.scrollEventData = [];
+            this.hover_selected();
+            this.evaluate_operation('hover');
           end
           drawnow limitrate
 
         case 'up'
 
-          if obj.isActive
-            obj.figurePoint = obj.hFigure.CurrentPoint;
-            obj.evaluate_operation('drag');
-            obj.evaluate_operation('release');
-            obj.isActive = false;
-            obj.selectionType = 'none';
-            obj.hover_selected();
-            obj.evaluate_operation('hover');
+          if this.isActive
+            this.figurePoint = this.hFigure.CurrentPoint;
+            this.evaluate_operation('drag');
+            this.evaluate_operation('release');
+            this.isActive = false;
+            this.selectionType = 'none';
+            this.hover_selected();
+            this.evaluate_operation('hover');
             drawnow limitrate
           end
 
         case 'scroll'
 
-          if (~obj.isActive)
-            obj.figurePoint = obj.hFigure.CurrentPoint;
-            obj.scrollEventData = eventData;
-            obj.hover_selected();
-            obj.evaluate_operation('scroll');
+          if (~this.isActive)
+            this.figurePoint = this.hFigure.CurrentPoint;
+            this.scrollEventData = eventData;
+            this.hover_selected();
+            this.evaluate_operation('scroll');
             drawnow limitrate
           end
 
@@ -298,64 +358,64 @@ classdef MouseManager < handle
 
     %----------------------------------------------------------------------
     % Check if an item was last selected by clicking.
-    function clickSelected = click_selected(obj)
+    function clickSelected = click_selected(this)
 
-      obj.itemIndex = [];
-      obj.hoverRegion = [];
-      if ~isempty(obj.itemList) && ~isempty(obj.hFigure.CurrentObject)
-        obj.itemIndex = find(obj.hFigure.CurrentObject == obj.itemList);
+      this.itemIndex = [];
+      this.hoverRegion = [];
+      if ~isempty(this.itemList) && ~isempty(this.hFigure.CurrentObject)
+        this.itemIndex = find(this.hFigure.CurrentObject == this.itemList);
       end
-      clickSelected = ~isempty(obj.itemIndex);
+      clickSelected = ~isempty(this.itemIndex);
 
     end
 
     %----------------------------------------------------------------------
     % Check if an item was last selected by hovering.
-    function hoverSelected = hover_selected(obj)
+    function hoverSelected = hover_selected(this)
 
-      obj.itemIndex = [];
-      obj.hoverRegion = [];
-      for index = find(obj.isHoverable.')
-        hoverObject = obj.itemList(index);
+      this.itemIndex = [];
+      this.hoverRegion = [];
+      for index = find(this.activeOnHover.')
+        hoverObject = this.itemList(index);
         position = getpixelposition(hoverObject, true);
-        if all(obj.figurePoint >= position(1:2)) && ...
-           all(obj.figurePoint <= (position(1:2) + position(3:4)))
-          obj.itemIndex = index;
-          obj.hoverRegion = position;
+        if all(this.figurePoint >= position(1:2)) && ...
+           all(this.figurePoint <= (position(1:2) + position(3:4)))
+          this.itemIndex = index;
+          this.hoverRegion = position;
           break
         end
       end
-      hoverSelected = ~isempty(obj.itemIndex);
+      hoverSelected = ~isempty(this.itemIndex);
 
     end
 
     %----------------------------------------------------------------------
     % Fetch and evaluate a mouse operation.
-    function evaluate_operation(obj, oper)
+    function evaluate_operation(this, oper)
 
-      if ~isempty(obj.itemIndex)
-        fcn = obj.itemFcnTable(obj.itemIndex).(oper);
+      if ~isempty(this.itemIndex)
+        fcn = this.itemFcnTable(this.itemIndex).(oper);
         if isstruct(fcn)
-          fcn = fcn.(obj.selectionType);
+          fcn = fcn.(this.selectionType);
         end
         if ~isempty(fcn)
-          fcn(obj.itemList(obj.itemIndex), obj.event_data(oper));
+          fcn(this.itemList(this.itemIndex), this.event_data(oper));
         end
-      elseif strcmp(oper, 'hover') && ~isempty(obj.defaultHoverFcn)
-        obj.defaultHoverFcn([], obj.event_data(oper));
+      elseif strcmp(oper, 'hover') && ~isempty(this.defaultHoverFcn)
+        this.defaultHoverFcn([], this.event_data(oper));
       end
 
     end
 
     %----------------------------------------------------------------------
     % Create an event data structure.
-    function eventData = event_data(obj, oper)
+    function eventData = event_data(this, oper)
 
       eventData = struct('operation', oper, ...
-                         'selectionType', obj.selectionType, ...
-                         'figurePoint', obj.figurePoint, ...
-                         'figureRegion', obj.hoverRegion, ...
-                         'scrollEventData', obj.scrollEventData);
+                         'selectionType', this.selectionType, ...
+                         'figurePoint', this.figurePoint, ...
+                         'figureRegion', this.hoverRegion, ...
+                         'scrollEventData', this.scrollEventData);
 
     end
 
@@ -385,6 +445,8 @@ classdef MouseManager < handle
     % Parse input arguments.
     function [argList, inArgs] = parse_input(argList, inArgs)
 
+      argIsSet = false(1, 2);
+
       % Check up to 3 arguments from the argument list:
 
       for inputIndex = 1:min(3, numel(argList))
@@ -403,27 +465,37 @@ classdef MouseManager < handle
 
         switch class(newArg)
 
-          case 'char'  %START HERE!!!
+          case 'char'
 
             newArg = lower(newArg);
-            assert(ismember(newArg, inArgs{inputIndex}), ...
-                   'MouseManager:invalidArgumentString', ...
-                   ['Valid options for input argument are: ' ...
-                    sprintf('%s ', inArgs{inputIndex}{:})]);
-            inArgs{inputIndex} = {newArg};
+            isValid = [ismember(newArg, inArgs{1}) ...
+                       ismember(newArg, inArgs{2})];
+            validArgs = [inArgs{~argIsSet}];
+            assert(any(isValid), 'MouseManager:invalidArgumentString', ...
+                   ['Valid options for input arguments are: ' ...
+                    sprintf('%s ', validArgs{:})]);
+            assert(~any(isValid & argIsSet), ...
+                   'MouseManager:invalidFormat', ...
+                   ['Multiple values for OPER or SELECTION must be ' ...
+                    'contained in a cell array.']);
+            inArgs{isValid} = {newArg};
+            argIsSet = argIsSet | isValid;
 
           case 'cell'
 
-            assert(cellfun('isclass', newArg, 'char'), ...
+            assert(all(cellfun('isclass', newArg, 'char')), ...
                    'MouseManager:invalidArgumentType', ...
                    ['Cell array input argument must be a cell array ' ...
                     'of character strings.']);
-            newArg = lower(newArg);
-            assert(all(ismember(newArg, inArgs{inputIndex})), ...
-                   'MouseManager:invalidArgumentString', ...
-                   ['Valid options for input argument are: ' ...
-                    sprintf('%s ', inArgs{inputIndex}{:})]);
+            newArg = unique(lower(newArg));
+            isValid = [all(ismember(newArg, inArgs{1})) ...
+                       all(ismember(newArg, inArgs{2}))];
+            validArgs = [inArgs{~argIsSet}];
+            assert(any(isValid), 'MouseManager:invalidArgumentString', ...
+                   ['Valid options for input arguments are: ' ...
+                    sprintf('%s ', validArgs{:})]);
             inArgs{inputIndex} = newArg;
+            argIsSet = argIsSet | isValid;
 
           otherwise
 
