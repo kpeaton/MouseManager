@@ -12,19 +12,16 @@ classdef MouseManager < handle
 %   method.
 %
 %   See also handle, MouseManager.add_item, MouseManager.enable,
-%            MouseManager.default_hover_fcn.
+%            MouseManager.default_hover_fcn, MouseManager.delete.
 
 % TODO:
-% - Remove WindowFcns when deleted? (i.e. disable first)
+% - Complete disp method to show table of function handles.
 % - Do HandleVisibility or HitTest properties of objects need to be
 %   modified when added?
-% - Allow function handle input to be a cell array (extra args)?
-% - Add disp method to show table of function handles?
-% - Add Tag property?
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
-% Last modified: 3/1/17
+% Last modified: 3/3/17
 % Copyright 2017 by Kenneth P. Eaton
 %--------------------------------------------------------------------------
 
@@ -188,9 +185,11 @@ classdef MouseManager < handle
     %                           when not scrolling)
     %   Making calls to drawnow from within CALLBACKFCN is strongly
     %   discouraged, as graphics refreshing is handled by the MouseManager
-    %   class object. CALLBACKFCN can be empty, in which case any existing
-    %   callback is cleared (and H is removed as a managed object if it has
-    %   no associated callbacks).
+    %   class object. CALLBACKFCN can be a cell array where the first
+    %   element is a function handle and the remaining elements are
+    %   additional arguments to be passed to CALLBACKFCN. CALLBACKFCN can
+    %   be empty, in which case any existing callback is cleared (and H is
+    %   removed as a managed object if it has no associated callbacks).
     %
     %   The input argument list can contain repeated sets of OPER,
     %   SELECTION, and CALLBACKFCN for setting more than one callback
@@ -290,17 +289,94 @@ classdef MouseManager < handle
     %       scrollEventData  -- Empty
     %   Making calls to drawnow from within CALLBACKFCN is strongly
     %   discouraged, as graphics refreshing is handled by the MouseManager
-    %   class object. CALLBACKFCN can be empty, in which case any existing
-    %   default hover function is removed.
+    %   class object. CALLBACKFCN can be a cell array where the first
+    %   element is a function handle and the remaining elements are
+    %   additional arguments to be passed to CALLBACKFCN. CALLBACKFCN can
+    %   be empty, in which case any existing default hover function is
+    %   removed.
     %
     %   See also MouseManager, MouseManager.add_item.
 
       if ~isempty(hoverFcn)
-        assert(isa(hoverFcn, 'function_handle'), ...
+        assert(isa(hoverFcn, 'function_handle') ...
+               || (iscell(hoverFcn) ...
+                   && isa(hoverFcn{1}, 'function_handle')), ...
                'MouseManager:invalidFunctionHandle', ...
                'Function handle argument is invalid.');
       end
       this.defaultHoverFcn = hoverFcn;
+
+    end
+
+    %----------------------------------------------------------------------
+    function disp(this)
+    %disp   Display method for MouseManager objects.
+    %   disp(MMOBJ) displays information for the MouseManager object MMOBJ.
+    %
+    %   See also MouseManager.
+
+      % Check object validity:
+
+      if ~this.isvalid()
+        link1 = ['matlab: helpview', ...
+                 '([docroot ''/techdoc/matlab_oop/matlab_oop.map''],', ...
+                 '''deleted_handle_objects'')'];
+        link2 = 'matlab: help MouseManager';
+        fprintf('  handle to %s %s\n\n', link_text('deleted', link1), ...
+                link_text('MouseManager', link2, 'font-weight:bold;'));
+        return
+      end
+
+      % Display general information:
+
+      fprintf('MouseManager object:\n\n');
+      if isempty(this.defaultHoverFcn)
+        fcnString = '[]';
+      elseif iscell(this.defaultHoverFcn)
+        try
+          argString = cellfun(@(c) {[', ', char(c)]}, ...
+                              this.defaultHoverFcn(2:end));
+        catch
+          argString = {', ...'};
+        end
+        fcnString = ['{', func2str(this.defaultHoverFcn{1}), ...
+                     argString{:}, '}'];
+      else
+        fcnString = func2str(this.defaultHoverFcn);
+      end
+      displayData = {'hFigure', ['''', this.hFigure.Name, ''''], ...
+                     'enabled', int2str(this.enabled), ...
+                     'defaultHoverFcn', fcnString}.';
+      fprintf('%16s: %-s\n', displayData{:});
+      fprintf('\n');
+
+      % Display managed items and associated callbacks:
+
+      %START HERE!!!
+
+      %--------------------------------------------------------------------
+      % Generate an HTML link.
+      function linkText = link_text(textString, textLink, textStyle)
+        if nargin == 2
+          textStyle = '';
+        end
+        linkText = sprintf('<a href="%s" style="%s">%s</a>', ...
+                           textLink, textStyle, textString);
+      end
+
+    end
+
+    %----------------------------------------------------------------------
+    function delete(this)
+    %delete   Delete a MouseManager object.
+    %   delete(MMOBJ) deletes the MouseManager object MMOBJ. The object is
+    %   deleted but is not cleared from the workspace. A deleted object is
+    %   no longer valid.
+    %
+    %   See also MouseManager, MouseManager.isvalid.
+
+      this.enable(false);
+      delete@handle(this);
 
     end
 
@@ -419,15 +495,30 @@ classdef MouseManager < handle
     function evaluate_operation(this, oper)
 
       if ~isempty(this.itemIndex)
+
         fcn = this.itemFcnTable(this.itemIndex).(oper);
         if isstruct(fcn)
           fcn = fcn.(this.selectionType);
         end
-        if ~isempty(fcn)
+        if isempty(fcn)
+          return
+        end
+        if iscell(fcn)
+          fcn{1}(this.itemList(this.itemIndex), this.event_data(oper), ...
+                 fcn{2:end});
+        else
           fcn(this.itemList(this.itemIndex), this.event_data(oper));
         end
+
       elseif strcmp(oper, 'hover') && ~isempty(this.defaultHoverFcn)
-        this.defaultHoverFcn([], this.event_data(oper));
+
+        if iscell(this.defaultHoverFcn)
+          this.defaultHoverFcn{1}([], this.event_data(oper), ...
+                                  this.defaultHoverFcn{2:end});
+        else
+          this.defaultHoverFcn([], this.event_data(oper));
+        end
+
       end
 
     end
@@ -479,7 +570,8 @@ classdef MouseManager < handle
         % Check first for a function handle (or empty) argument:
 
         newArg = argList{inputIndex};
-        if isempty(newArg) || isa(newArg, 'function_handle')
+        if isempty(newArg) || isa(newArg, 'function_handle') ...
+           || (iscell(newArg) && isa(newArg{1}, 'function_handle'))
           inArgs{3} = newArg;
           break
         elseif (inputIndex == 3)
