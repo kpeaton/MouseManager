@@ -15,13 +15,12 @@ classdef MouseManager < handle
 %            MouseManager.default_hover_fcn, MouseManager.delete.
 
 % TODO:
-% - Complete disp method to show table of function handles.
 % - Do HandleVisibility or HitTest properties of objects need to be
 %   modified when added?
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
-% Last modified: 3/3/17
+% Last modified: 3/5/17
 % Copyright 2017 by Kenneth P. Eaton
 %--------------------------------------------------------------------------
 
@@ -322,46 +321,116 @@ classdef MouseManager < handle
                  '([docroot ''/techdoc/matlab_oop/matlab_oop.map''],', ...
                  '''deleted_handle_objects'')'];
         link2 = 'matlab: help MouseManager';
-        fprintf('  handle to %s %s\n\n', link_text('deleted', link1), ...
-                link_text('MouseManager', link2, 'font-weight:bold;'));
+        fprintf('   handle to %s %s\n\n', text2link('deleted', link1), ...
+                text2link('MouseManager', link2, 'font-weight:bold;'));
         return
       end
 
       % Display general information:
 
-      fprintf('MouseManager object:\n\n');
+      fprintf('   MouseManager object:\n\n');
       if isempty(this.defaultHoverFcn)
         fcnString = '[]';
-      elseif iscell(this.defaultHoverFcn)
-        try
-          argString = cellfun(@(c) {[', ', char(c)]}, ...
-                              this.defaultHoverFcn(2:end));
-        catch
-          argString = {', ...'};
-        end
-        fcnString = ['{', func2str(this.defaultHoverFcn{1}), ...
-                     argString{:}, '}'];
       else
-        fcnString = func2str(this.defaultHoverFcn);
+        fcnString = callback2str(this.defaultHoverFcn);
       end
       displayData = {'hFigure', ['''', this.hFigure.Name, ''''], ...
                      'enabled', int2str(this.enabled), ...
                      'defaultHoverFcn', fcnString}.';
-      fprintf('%16s: %-s\n', displayData{:});
-      fprintf('\n');
+      fprintf('%18s: %-s\n', displayData{:});
 
       % Display managed items and associated callbacks:
 
-      %START HERE!!!
+      fprintf('\n%14s  |%15s  |  %-s\n', 'Item', 'activeOnHover', ...
+              'operation___selection___callbackFcn');
+      separator = ['   ', repmat('-', 1, 73), '\n'];
+      separator([17 35]) = '+';
+      oper = {'click__'; 'drag___'; 'release'};
+      selection = {'normal'; 'extend'; 'alt___'; 'open__'};
+      for index = 1:numel(this.itemList)
+
+        % Format data for click, drag, and release callbacks:
+
+        tableData = struct2cell([this.itemFcnTable(index).click; ...
+                                 this.itemFcnTable(index).drag; ...
+                                 this.itemFcnTable(index).release]);
+        tableData = [repmat({' | '}, 12, 1), ...
+                     oper([1 1 1 1 2 2 2 2 3 3 3 3]), ...
+                     repmat({' \_'}, 12, 1), ...
+                     repmat(selection, 3, 1), ...
+                     repmat({'___'}, 12, 1), ...
+                     reshape(tableData(1:4, :), 12, 1)];
+        tableData(cellfun('isempty', tableData(:, 6)), :) = [];
+        tableData(:, 6) = cellfun(@(c) {callback2str(c)}, tableData(:, 6));
+        [~, startIndex] = unique(tableData(:, 2));
+        tableData(startIndex, 3) = {'___'};
+        tableData(startIndex, 1) = {' \_'};
+        tableData(setdiff(1:size(tableData, 1), startIndex), 2) = {''};
+
+        % Format data for hover callback:
+
+        hoverFcn = this.itemFcnTable(index).hover;
+        if ~isempty(hoverFcn)
+          tableData = [tableData; ...
+                       {' \_', 'hover__', '___', ...
+                        callback2str(hoverFcn), '', ''}];
+        end
+
+        % Format data for scroll callback:
+
+        scrollFcn = this.itemFcnTable(index).scroll;
+        if ~isempty(scrollFcn)
+          tableData = [tableData; ...
+                       {' \_', 'scroll_', '___', ...
+                        callback2str(scrollFcn), '', ''}];
+        end
+
+        % Final formatting of callback data:
+
+        tableData(1, 1) = {'___'};
+        tableData = [repmat({''}, 1, size(tableData, 1)); tableData.'];
+        tableData(1, 2:end) = {[blanks(16), '|', blanks(17), '|  ']};
+
+        % Display data for managed item:
+
+        fprintf(separator);
+        fprintf('%14s  |%9d        |  %-s', ...
+                this.itemList(index).Type, ...
+                this.activeOnHover(index), ...
+                sprintf('%s%3s%7s%3s%6s%3s%s\n', tableData{:}));
+
+      end
+      fprintf('\n');
 
       %--------------------------------------------------------------------
-      % Generate an HTML link.
-      function linkText = link_text(textString, textLink, textStyle)
+      % Convert text to an HTML link.
+      function linkText = text2link(textString, textLink, textStyle)
+
         if nargin == 2
           textStyle = '';
         end
         linkText = sprintf('<a href="%s" style="%s">%s</a>', ...
                            textLink, textStyle, textString);
+
+      end
+
+      %--------------------------------------------------------------------
+      % Convert a callback to a string.
+      function callbackString = callback2str(callbackFcn)
+
+        if iscell(callbackFcn)
+          try
+            argString = cellfun(@(c) {[', ', char(c)]}, ...
+                                callbackFcn(2:end));
+          catch
+            argString = {', ...'};
+          end
+          callbackString = ['{', func2str(callbackFcn{1}), ...
+                            argString{:}, '}'];
+        else
+          callbackString = func2str(callbackFcn);
+        end
+
       end
 
     end
