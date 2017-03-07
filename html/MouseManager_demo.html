@@ -1,0 +1,182 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>MouseManager demo</title><meta name="generator" content="MATLAB 9.1"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-03-07"><meta name="DC.source" content="MouseManager_demo.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1><tt>MouseManager</tt> demo</h1><!--introduction--><p>The <tt>MouseManager</tt> class provides a general-purpose, easy-to-use interface for managing mouse-based interactions with objects in a figure. A <tt>MouseManager</tt> object is associated with a figure window and helps handle any mouse-driven interactions (such as clicking, hovering, and scrolling) with multiple graphics objects within the figure, particularly axes objects and their children. Below are four examples of how <tt>MouseManager</tt> can be used to easily add mouse-based interaction to your GUIs.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Panning/Zooming/Resetting an axes</a></li><li><a href="#3">Windowing data with sliding lines</a></li><li><a href="#5">Displaying information while hovering over an axes</a></li><li><a href="#6">3D interaction using camera operations</a></li></ul></div><h2 id="1">Panning/Zooming/Resetting an axes</h2><p>The code for this demo is included below and can be found in the file <tt>panning_demo.m</tt>:</p><pre class="language-matlab">
+<span class="keyword">function</span> panning_demo
+
+  <span class="comment">% Load image:</span>
+
+  demoImage = imread(<span class="string">'peppers.png'</span>);
+  [nRows, nColumns, ~] = size(demoImage);
+  xLimits = [0.5 nColumns+0.5];
+  yLimits = [0.5 nRows+0.5];
+
+  <span class="comment">% Create figure and display an image:</span>
+
+  hFigure = figure();
+  hAxes = axes(hFigure, <span class="string">'DataAspectRatio'</span>, [1 1 1], <span class="keyword">...</span>
+                        <span class="string">'NextPlot'</span>, <span class="string">'add'</span>, <span class="keyword">...</span>
+                        <span class="string">'Visible'</span>, <span class="string">'off'</span>, <span class="keyword">...</span>
+                        <span class="string">'XLim'</span>, xLimits, <span class="keyword">...</span>
+                        <span class="string">'YDir'</span>, <span class="string">'reverse'</span>, <span class="keyword">...</span>
+                        <span class="string">'YLim'</span>, yLimits);
+  image(hAxes, demoImage);
+
+  <span class="comment">% Create MouseManager and intialize:</span>
+
+  mmObject = MouseManager(hFigure);
+  mmObject.add_item(hAxes, <span class="string">'normal'</span>, @pan_image, <span class="keyword">...</span>
+                           <span class="string">'scroll'</span>, @zoom_image, <span class="keyword">...</span>
+                           <span class="string">'click'</span>, <span class="string">'open'</span>, @reset_image);
+  mmObject.enable(true);
+
+  <span class="comment">% Nested functions:</span>
+
+  <span class="keyword">function</span> pan_image(~, eventData)
+
+    <span class="keyword">persistent</span> panOrigin panLimits panScale
+    <span class="keyword">switch</span> eventData.operation
+      <span class="keyword">case</span> <span class="string">'click'</span>
+        panOrigin = eventData.figurePoint;
+        panLimits = [hAxes.XLim hAxes.YLim];
+        axesPosition = eventData.figureRegion;
+        panScale = max([diff(panLimits(1:2))/axesPosition(3) <span class="keyword">...</span>
+                        diff(panLimits(3:4))/axesPosition(4)]);
+      <span class="keyword">case</span> <span class="string">'drag'</span>
+        offset = panScale.*(eventData.figurePoint-panOrigin);
+        hAxes.XLim = panLimits(1:2) - offset(1);
+        hAxes.YLim = panLimits(3:4) + offset(2);
+    <span class="keyword">end</span>
+
+  <span class="keyword">end</span>
+
+  <span class="keyword">function</span> zoom_image(~, eventData)
+
+    fraction = (1-1.25^eventData.scrollEventData.VerticalScrollCount)/2;
+    hAxes.XLim = hAxes.XLim + [1 -1].*fraction.*diff(hAxes.XLim);
+    hAxes.YLim = hAxes.YLim + [1 -1].*fraction.*diff(hAxes.YLim);
+
+  <span class="keyword">end</span>
+
+  <span class="keyword">function</span> reset_image(~, ~)
+
+    hAxes.XLim = xLimits;
+    hAxes.YLim = yLimits;
+
+  <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+
+</pre><p>First, an image is loaded and then displayed in a figure window. A <tt>MouseManager</tt> object <tt>mmObject</tt> is then created and associated with the figure window. The axes object is added as a managed item using the <tt>add_item</tt> method and 3 callback functions are added:</p><div><ul><li><tt>pan_image</tt>, which handles panning of the image, is associated with 'normal' (i.e. left) mouse button operations (clicking, dragging, etc.) involving the axes object.</li><li><tt>zoom_image</tt>, which handles zooming in and out on the image, is associated with 'scroll' operations made over the axes object.</li><li><tt>reset_image</tt>, which returns the image to its default display, is associated with 'click' operations made over the image, specifically 'open' (i.e. double-click) selections made with any mouse button.</li></ul></div><h2 id="3">Windowing data with sliding lines</h2><p>:</p><h2 id="5">Displaying information while hovering over an axes</h2><p>:</p><h2 id="6">3D interaction using camera operations</h2><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% |MouseManager| demo
+% The |MouseManager| class provides a general-purpose, easy-to-use
+% interface for managing mouse-based interactions with objects in a figure.
+% A |MouseManager| object is associated with a figure window and helps
+% handle any mouse-driven interactions (such as clicking, hovering, and
+% scrolling) with multiple graphics objects within the figure, particularly
+% axes objects and their children. Below are four examples of how
+% |MouseManager| can be used to easily add mouse-based interaction to your
+% GUIs.
+%%
+
+%% Panning/Zooming/Resetting an axes
+% The code for this demo is included below and can be found in the file
+% |panning_demo.m|:
+% 
+% <include>panning_demo.m</include>
+%
+
+%%
+% First, an image is loaded and then displayed in a figure window. A
+% |MouseManager| object |mmObject| is then created and associated with the
+% figure window. The axes object is added as a managed item using the
+% |add_item| method and 3 callback functions are added:
+%
+% * |pan_image|, which handles panning of the image, is associated with
+% 'normal' (i.e. left) mouse button operations (clicking, dragging, etc.)
+% involving the axes object.
+% * |zoom_image|, which handles zooming in and out on the image, is
+% associated with 'scroll' operations made over the axes object.
+% * |reset_image|, which returns the image to its default display, is
+% associated with 'click' operations made over the image, specifically
+% 'open' (i.e. double-click) selections made with any mouse button.
+
+%% Windowing data with sliding lines
+% :
+
+%%
+% 
+
+%% Displaying information while hovering over an axes
+% :
+
+%% 3D interaction using camera operations
+%
+##### SOURCE END #####
+--></body></html>

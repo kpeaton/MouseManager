@@ -11,16 +11,21 @@ classdef MouseManager < handle
 %   method. MMOBJ can be enabled/disabled using the MouseManager.enable
 %   method.
 %
-%   See also handle, MouseManager.add_item, MouseManager.enable,
-%            MouseManager.default_hover_fcn, MouseManager.delete.
+%   See also handle, MouseManager.add_item, MouseManager.remove_item,
+%            MouseManager.default_hover_fcn, MouseManager.enable,
+%            MouseManager.delete.
 
 % TODO:
-% - Do HandleVisibility or HitTest properties of objects need to be
-%   modified when added?
+% - Should only click/drag/release be used by default, if not specified?
+% - Make MouseManager_demo:
+%   - Pan/Zoom/Reset axes (show different groupings of operations)
+%   - Min/Max sliders (use handles structure as extra argument)
+%   - Display hover info for multiple axes (default hover fcn example)
+%   - 3D interaction using camera operations
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
-% Last modified: 3/5/17
+% Last modified: 3/6/17
 % Copyright 2017 by Kenneth P. Eaton
 %--------------------------------------------------------------------------
 
@@ -48,11 +53,12 @@ classdef MouseManager < handle
   properties (Access = private)
 
     hListener                 % Listener for WindowButtonFcn properties.
+    hItemListeners            % Listeners for managed graphics objects.
     isActive logical = false  % Indicates if a mouse button is active.
     selectionType = 'none'    % Mouse button selected.
     figurePoint               % Most recent figure CurrentPoint value.
     itemIndex                 % Index of managed object currently active.
-    hoverRegion               % Figure-level position of managed object.
+    figureRegion              % Figure-level position of managed object.
     scrollEventData           % Event data for scroll operations.
 
   end
@@ -197,7 +203,7 @@ classdef MouseManager < handle
     %   If H is deleted at any time, then H and any callback functions
     %   associated with it through add_item will be removed from MMOBJ.
     %
-    %   See also MouseManager, getpixelposition.
+    %   See also MouseManager, MouseManager.remove_item, getpixelposition.
 
       % Add the new graphics object if it is not in the list already:
 
@@ -209,12 +215,16 @@ classdef MouseManager < handle
       newList = this.itemList;
       newFcnTable = this.itemFcnTable;
       newActiveOnHover = this.activeOnHover;
+      newListeners = this.hItemListeners;
       index = find(hItem == newList);
       isNewItem = isempty(index);
       if isNewItem
         newList = [newList; hItem];
         newFcnTable = [newFcnTable; MouseManager.fcn_table_entry()];
         newActiveOnHover = [newActiveOnHover; false];
+        newListeners = [newListeners; ...
+                        addlistener(hItem, 'ObjectBeingDestroyed', ...
+                                    @(hItem, ~) this.remove_item(hItem))];
         index = numel(newList);
       end
 
@@ -238,33 +248,52 @@ classdef MouseManager < handle
         callbackWasCleared = callbackWasCleared || isempty(inArgs{3});
       end
 
+      % Update managed object information:
+
+      this.itemFcnTable = newFcnTable;
+      this.activeOnHover = newActiveOnHover;
+      if isNewItem
+        this.itemList = newList;
+        this.hItemListeners = newListeners;
+      end
+
       % Perform clean-up if any callbacks were cleared:
 
       if callbackWasCleared
         if isempty(newFcnTable(index).hover) ...
            && isempty(newFcnTable(index).scroll)
-          newActiveOnHover(index) = false;
+          this.activeOnHover(index) = false;
           clickFcns = struct2cell([newFcnTable(index).click; ...
                                    newFcnTable(index).drag; ...
                                    newFcnTable(index).release]);
           if all(cellfun('isempty', clickFcns(:)))
-            newList(index) = [];
-            newFcnTable(index) = [];
-            newActiveOnHover(index) = [];
+            this.remove_item(hItem);
           end
         else
-          newActiveOnHover(index) = true;
+          this.activeOnHover(index) = true;
         end
       end
 
-      % Update managed object information:
+    end
 
-      this.itemList = newList;
-      this.activeOnHover = newActiveOnHover;
-      this.itemFcnTable = newFcnTable;
-      if isNewItem
-        addlistener(hItem, 'ObjectBeingDestroyed', @this.remove_item);
+    %----------------------------------------------------------------------
+    function remove_item(this, hRemove)
+    %remove_item   Remove a managed object.
+    %   MMOBJ.remove_item(H) will remove H as a managed object of MMOBJ.
+    %   Any callbacks associated with H are removed. H can be a vector of
+    %   graphics objects.
+    %
+    %   See also MouseManager, MouseManager.add_item.
+
+      if ~this.isvalid()
+        return
       end
+      index = ismember(this.itemList, hRemove);
+      this.itemList(index) = [];
+      this.activeOnHover(index) = [];
+      this.itemFcnTable(index) = [];
+      delete(this.hItemListeners(index));
+      this.hItemListeners(index) = [];
 
     end
 
@@ -373,7 +402,7 @@ classdef MouseManager < handle
         if ~isempty(hoverFcn)
           tableData = [tableData; ...
                        {' \_', 'hover__', '___', ...
-                        callback2str(hoverFcn), '', ''}];
+                        callback2str(hoverFcn), '', ''}]; %#ok<AGROW>
         end
 
         % Format data for scroll callback:
@@ -382,7 +411,7 @@ classdef MouseManager < handle
         if ~isempty(scrollFcn)
           tableData = [tableData; ...
                        {' \_', 'scroll_', '___', ...
-                        callback2str(scrollFcn), '', ''}];
+                        callback2str(scrollFcn), '', ''}]; %#ok<AGROW>
         end
 
         % Final formatting of callback data:
@@ -513,29 +542,19 @@ classdef MouseManager < handle
     end
 
     %----------------------------------------------------------------------
-    % Remove a managed graphics object.
-    function remove_item(this, hRemove, ~)
-
-      if ~this.isvalid()
-        return
-      end
-      index = (hRemove == this.itemList);
-      this.itemList(index) = [];
-      this.activeOnHover(index) = [];
-      this.itemFcnTable(index) = [];
-
-    end
-
-    %----------------------------------------------------------------------
     % Check if an item was last selected by clicking.
     function clickSelected = click_selected(this)
 
       this.itemIndex = [];
-      this.hoverRegion = [];
+      this.figureRegion = [];
       if ~isempty(this.itemList) && ~isempty(this.hFigure.CurrentObject)
         this.itemIndex = find(this.hFigure.CurrentObject == this.itemList);
       end
       clickSelected = ~isempty(this.itemIndex);
+      if clickSelected
+        clickObject = this.itemList(this.itemIndex);
+        this.figureRegion = getpixelposition(clickObject, true);
+      end
 
     end
 
@@ -544,14 +563,14 @@ classdef MouseManager < handle
     function hoverSelected = hover_selected(this)
 
       this.itemIndex = [];
-      this.hoverRegion = [];
+      this.figureRegion = [];
       for index = find(this.activeOnHover.')
         hoverObject = this.itemList(index);
         position = getpixelposition(hoverObject, true);
         if all(this.figurePoint >= position(1:2)) && ...
            all(this.figurePoint <= (position(1:2) + position(3:4)))
           this.itemIndex = index;
-          this.hoverRegion = position;
+          this.figureRegion = position;
           break
         end
       end
@@ -599,7 +618,7 @@ classdef MouseManager < handle
       eventData = struct('operation', oper, ...
                          'selectionType', this.selectionType, ...
                          'figurePoint', this.figurePoint, ...
-                         'figureRegion', this.hoverRegion, ...
+                         'figureRegion', this.figureRegion, ...
                          'scrollEventData', this.scrollEventData);
 
     end
