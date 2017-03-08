@@ -16,16 +16,13 @@ classdef MouseManager < handle
 %            MouseManager.delete.
 
 % TODO:
-% - Should only click/drag/release be used by default, if not specified?
 % - Make MouseManager_demo:
-%   - Pan/Zoom/Reset axes (show different groupings of operations)
-%   - Min/Max sliders (use handles structure as extra argument)
 %   - Display hover info for multiple axes (default hover fcn example)
 %   - 3D interaction using camera operations
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
-% Last modified: 3/6/17
+% Last modified: 3/7/17
 % Copyright 2017 by Kenneth P. Eaton
 %--------------------------------------------------------------------------
 
@@ -44,7 +41,6 @@ classdef MouseManager < handle
     enabled logical = false  % Enabled state of MouseManager object.
     itemList         % List of managed graphics objects.
     itemFcnTable     % Structure of function handles.
-    activeOnHover    % True if an object can be active without clicking.
     defaultHoverFcn  % Default function for hovering over figure.
 
   end
@@ -214,14 +210,12 @@ classdef MouseManager < handle
              'Parent figure of graphics object must match bound figure.');
       newList = this.itemList;
       newFcnTable = this.itemFcnTable;
-      newActiveOnHover = this.activeOnHover;
       newListeners = this.hItemListeners;
       index = find(hItem == newList);
       isNewItem = isempty(index);
       if isNewItem
         newList = [newList; hItem];
         newFcnTable = [newFcnTable; MouseManager.fcn_table_entry()];
-        newActiveOnHover = [newActiveOnHover; false];
         newListeners = [newListeners; ...
                         addlistener(hItem, 'ObjectBeingDestroyed', ...
                                     @(hItem, ~) this.remove_item(hItem))];
@@ -242,7 +236,6 @@ classdef MouseManager < handle
             end
           else
             newFcnTable(index).(oper{1}) = inArgs{3};
-            newActiveOnHover(index) = true;
           end
         end
         callbackWasCleared = callbackWasCleared || isempty(inArgs{3});
@@ -251,7 +244,6 @@ classdef MouseManager < handle
       % Update managed object information:
 
       this.itemFcnTable = newFcnTable;
-      this.activeOnHover = newActiveOnHover;
       if isNewItem
         this.itemList = newList;
         this.hItemListeners = newListeners;
@@ -259,18 +251,13 @@ classdef MouseManager < handle
 
       % Perform clean-up if any callbacks were cleared:
 
-      if callbackWasCleared
-        if isempty(newFcnTable(index).hover) ...
-           && isempty(newFcnTable(index).scroll)
-          this.activeOnHover(index) = false;
-          clickFcns = struct2cell([newFcnTable(index).click; ...
-                                   newFcnTable(index).drag; ...
-                                   newFcnTable(index).release]);
-          if all(cellfun('isempty', clickFcns(:)))
-            this.remove_item(hItem);
-          end
-        else
-          this.activeOnHover(index) = true;
+      if callbackWasCleared && isempty(newFcnTable(index).hover) ...
+         && isempty(newFcnTable(index).scroll)
+        clickFcns = struct2cell([newFcnTable(index).click; ...
+                                 newFcnTable(index).drag; ...
+                                 newFcnTable(index).release]);
+        if all(cellfun('isempty', clickFcns(:)))
+          this.remove_item(hItem);
         end
       end
 
@@ -290,7 +277,6 @@ classdef MouseManager < handle
       end
       index = ismember(this.itemList, hRemove);
       this.itemList(index) = [];
-      this.activeOnHover(index) = [];
       this.itemFcnTable(index) = [];
       delete(this.hItemListeners(index));
       this.hItemListeners(index) = [];
@@ -370,10 +356,10 @@ classdef MouseManager < handle
 
       % Display managed items and associated callbacks:
 
-      fprintf('\n%14s  |%15s  |  %-s\n', 'Item', 'activeOnHover', ...
+      fprintf('\n%23s  |  %-s\n', 'Item (Tag)', ...
               'operation___selection___callbackFcn');
       separator = ['   ', repmat('-', 1, 73), '\n'];
-      separator([17 35]) = '+';
+      separator(26) = '+';
       oper = {'click__'; 'drag___'; 'release'};
       selection = {'normal'; 'extend'; 'alt___'; 'open__'};
       for index = 1:numel(this.itemList)
@@ -418,14 +404,18 @@ classdef MouseManager < handle
 
         tableData(1, 1) = {'___'};
         tableData = [repmat({''}, 1, size(tableData, 1)); tableData.'];
-        tableData(1, 2:end) = {[blanks(16), '|', blanks(17), '|  ']};
+        tableData(1, 2:end) = {[blanks(25), '|  ']};
 
         % Display data for managed item:
 
         fprintf(separator);
-        fprintf('%14s  |%9d        |  %-s', ...
-                this.itemList(index).Type, ...
-                this.activeOnHover(index), ...
+        hItem = this.itemList(index);
+        if isempty(hItem.Tag)
+          itemString = hItem.Type;
+        else
+          itemString = [hItem.Type ' (' hItem.Tag ')'];
+        end
+        fprintf('%23s  |  %-s', itemString, ...
                 sprintf('%s%3s%7s%3s%6s%3s%s\n', tableData{:}));
 
       end
@@ -564,7 +554,7 @@ classdef MouseManager < handle
 
       this.itemIndex = [];
       this.figureRegion = [];
-      for index = find(this.activeOnHover.')
+      for index = 1:numel(this.itemList)
         hoverObject = this.itemList(index);
         position = getpixelposition(hoverObject, true);
         if all(this.figurePoint >= position(1:2)) && ...
@@ -692,7 +682,7 @@ classdef MouseManager < handle
                    'MouseManager:invalidArgumentType', ...
                    ['Cell array input argument must be a cell array ' ...
                     'of character strings.']);
-            newArg = unique(lower(newArg));
+            newArg = unique(lower(newArg(:).'));
             isValid = [all(ismember(newArg, inArgs{1})) ...
                        all(ismember(newArg, inArgs{2}))];
             validArgs = [inArgs{~argIsSet}];
