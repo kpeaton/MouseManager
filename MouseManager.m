@@ -17,12 +17,11 @@ classdef MouseManager < handle
 
 % TODO:
 % - Make MouseManager_demo:
-%   - Display hover info for multiple axes (default hover fcn example)
 %   - 3D interaction using camera operations
 
 % Author: Ken Eaton
 % Version: MATLAB R2016b
-% Last modified: 3/7/17
+% Last modified: 3/9/17
 % Copyright 2017 by Kenneth P. Eaton
 %--------------------------------------------------------------------------
 
@@ -446,8 +445,14 @@ classdef MouseManager < handle
           end
           callbackString = ['{', func2str(callbackFcn{1}), ...
                             argString{:}, '}'];
+          if ~strcmp(callbackString(2), '@')
+            callbackString = ['{@', callbackString(2:end)];
+          end
         else
           callbackString = func2str(callbackFcn);
+          if ~strcmp(callbackString(1), '@')
+            callbackString = ['@', callbackString];
+          end
         end
 
       end

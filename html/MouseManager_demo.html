@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>MouseManager demo</title><meta name="generator" content="MATLAB 9.1"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-03-08"><meta name="DC.source" content="MouseManager_demo.m"><style type="text/css">
+      --><title>MouseManager demo</title><meta name="generator" content="MATLAB 9.1"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-03-09"><meta name="DC.source" content="MouseManager_demo.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -66,7 +66,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><h1><tt>MouseManager</tt> demo</h1><!--introduction--><p>The <tt>MouseManager</tt> class provides a general-purpose, easy-to-use interface for managing mouse-based interactions with objects in a figure. A <tt>MouseManager</tt> object is associated with a figure window and helps handle any mouse-driven interactions (such as clicking, hovering, and scrolling) with multiple graphics objects within the figure, particularly axes objects and their children. Below are four examples of how <tt>MouseManager</tt> can be used to easily add mouse-based interaction to your GUIs.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Panning/Zooming/Resetting an axes</a></li><li><a href="#7">Windowing data with sliding markers</a></li><li><a href="#9">Displaying information while hovering over an axes</a></li><li><a href="#10">3D interaction using camera operations</a></li></ul></div><h2 id="1">Panning/Zooming/Resetting an axes</h2><p>The code for this demo is included below and can be found in the file <tt>panning_demo.m</tt>. After running the code, an image will be displayed in a figure window. You can left click and drag to pan, scroll to zoom in and out, and double-click to reset to the default view:</p><pre class="language-matlab">
+  </style></head><body><div class="content"><h1><tt>MouseManager</tt> demo</h1><!--introduction--><p>The <tt>MouseManager</tt> class provides a general-purpose, easy-to-use interface for managing mouse-based interactions with objects in a figure. A <tt>MouseManager</tt> object is associated with a figure window and helps handle any mouse-driven interactions (such as clicking, hovering, and scrolling) with multiple graphics objects within the figure, particularly axes objects and their children. Below are four examples of how <tt>MouseManager</tt> can be used to easily add mouse-based interaction to your GUIs.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Panning/Zooming/Resetting an axes</a></li><li><a href="#7">Windowing data with sliding markers</a></li><li><a href="#9">Displaying information while hovering over an axes</a></li><li><a href="#12">3D interaction using camera operations</a></li></ul></div><h2 id="1">Panning/Zooming/Resetting an axes</h2><p>The code for this demo is included below and can be found in the file <tt>panning_demo.m</tt>. After running the code, an image will be displayed in a figure window. You can left click and drag to pan, scroll to zoom in and out, and double-click to reset to the default view:</p><pre class="language-matlab">
 <span class="keyword">function</span> panning_demo
 
   <span class="comment">% Load image:</span>
@@ -75,13 +75,15 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
   xLimits = [0.5 nColumns+0.5];
   yLimits = [0.5 nRows+0.5];
 
-  <span class="comment">% Create figure and display an image:</span>
+  <span class="comment">% Create figure and graphics objects:</span>
   hFigure = figure(<span class="string">'Name'</span>, <span class="string">'Panning Demo'</span>, <span class="string">'NumberTitle'</span>, <span class="string">'off'</span>);
-  hAxes = axes(hFigure, <span class="string">'DataAspectRatio'</span>, [1 1 1], <span class="keyword">...</span>
+  hAxes = axes(hFigure, <span class="string">'Color'</span>, <span class="string">'k'</span>, <span class="keyword">...</span>
+                        <span class="string">'DataAspectRatio'</span>, [1 1 1], <span class="keyword">...</span>
                         <span class="string">'NextPlot'</span>, <span class="string">'add'</span>, <span class="keyword">...</span>
                         <span class="string">'Tag'</span>, <span class="string">'AXES_1'</span>, <span class="keyword">...</span>
-                        <span class="string">'Visible'</span>, <span class="string">'off'</span>, <span class="keyword">...</span>
+                        <span class="string">'XColor'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
                         <span class="string">'XLim'</span>, xLimits, <span class="keyword">...</span>
+                        <span class="string">'YColor'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
                         <span class="string">'YDir'</span>, <span class="string">'reverse'</span>, <span class="keyword">...</span>
                         <span class="string">'YLim'</span>, yLimits);
   image(hAxes, demoImage);
@@ -130,21 +132,21 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
            enabled: 1
    defaultHoverFcn: []</pre><pre>             Item (Tag)  |  operation___selection___callbackFcn
    ----------------------+--------------------------------------------------
-          axes (AXES_1)  |  ___click_____normal___panning_demo/pan_image
-                         |   |         \_open_____panning_demo/reset_image
-                         |   \_drag______normal___panning_demo/pan_image
-                         |   \_release___normal___panning_demo/pan_image
-                         |   \_hover_____panning_demo/pan_image
-                         |   \_scroll____panning_demo/zoom_image</pre><p>In addition to listing the name of the associated figure window, enabled state of the <tt>MouseManager</tt> object, and the default hover function (see the <b>Displaying information while hovering over an axes</b> section below for more detail about this), a table of managed items and their associated callbacks are displayed. The type of object and its 'Tag' property, if it has one, is displayed along with a heirarchy of operations, mouse selections, and callback functions.</p><p>Note that the <tt>pan_image</tt> callback is defined for 'click', 'drag', 'release', and 'hover' operations. When we added this callback, we only specified the 'normal' selection and no operation arguments:</p><pre class="language-matlab">mmObject.add_item(hAxes, <span class="string">'normal'</span>, @pan_image, <span class="keyword">...</span>
+          axes (AXES_1)  |  ___click_____normal___@panning_demo/pan_image
+                         |   |         \_open_____@panning_demo/reset_image
+                         |   \_drag______normal___@panning_demo/pan_image
+                         |   \_release___normal___@panning_demo/pan_image
+                         |   \_hover_____@panning_demo/pan_image
+                         |   \_scroll____@panning_demo/zoom_image</pre><p>In addition to listing the name of the associated figure window, enabled state of the <tt>MouseManager</tt> object, and the default hover function (see the <b>Displaying information while hovering over an axes</b> section below for more detail about this), a table of managed items and their associated callbacks are displayed. The type of object and its 'Tag' property, if it has one, is displayed along with a heirarchy of operations, mouse selections, and callback functions.</p><p>Note that the <tt>pan_image</tt> callback is defined for 'click', 'drag', 'release', and 'hover' operations. When we added this callback, we only specified the 'normal' selection and no operation arguments:</p><pre class="language-matlab">mmObject.add_item(hAxes, <span class="string">'normal'</span>, @pan_image, <span class="keyword">...</span>
 </pre><p>As such, <b>all</b> possible operations were set to use <tt>pan_image</tt>. This includes the 'scroll' operation, although we subsequently overwrote that with <tt>zoom_image</tt> when we specified a 'scroll' operation callback. Since <tt>pan_image</tt> doesn't do anything for 'release' or 'hover' operations, we could be more specific when we add the callbacks, like so:</p><pre class="language-matlab">mmObject.add_item(hAxes, {<span class="string">'click'</span>, <span class="string">'drag'</span>}, <span class="string">'normal'</span>, @pan_image, <span class="keyword">...</span>
                          <span class="string">'scroll'</span>, @zoom_image, <span class="keyword">...</span>
                          <span class="string">'click'</span>, <span class="string">'open'</span>, @reset_image);
 </pre><p>And the callback heirarchy would now look like this:</p><pre>             Item (Tag)  |  operation___selection___callbackFcn
    ----------------------+--------------------------------------------------
-          axes (AXES_1)  |  ___click_____normal___panning_demo/pan_image
-                         |   |         \_open_____panning_demo/reset_image
-                         |   \_drag______normal___panning_demo/pan_image
-                         |   \_scroll____panning_demo/zoom_image</pre><p>There is a lot of flexibility in defining callbacks. You could specify a separate callback for every individual operation/selection combination, or a single callback function to handle everything for a given object:</p><pre class="language-matlab">mmObject.add_item(hItem, @do_it_all);
+          axes (AXES_1)  |  ___click_____normal___@panning_demo/pan_image
+                         |   |         \_open_____@panning_demo/reset_image
+                         |   \_drag______normal___@panning_demo/pan_image
+                         |   \_scroll____@panning_demo/zoom_image</pre><p>There is a lot of flexibility in defining callbacks. You could specify a separate callback for every individual operation/selection combination, or a single callback function to handle everything for a given object:</p><pre class="language-matlab">mmObject.add_item(hItem, @do_it_all);
 </pre><p><tt>do_it_all</tt> would simply have to fetch the current operation and mouse selection from the <tt>operation</tt> and <tt>selectionType</tt> fields, respectively, of the <tt>eventData</tt> structure in order to perform the correct action.</p><p>In truth, you may gain some slight performance advantages from specifying each individual combination, as that reduces the number of switch statements and function calls. However, this may be a micro-optimization. It's probably more important to organize things logically, like how <tt>pan_image</tt> handles all panning operations, and can therefore use persistent variables to store initial calculations.</p><h2 id="7">Windowing data with sliding markers</h2><p>The code for this demo is included below and can be found in the file <tt>windowing_demo.m</tt>. After running the code, a plot will be displayed in a figure window. You can left click and drag the upper and lower marker lines to select a region of the plot between them (shown in red). The mean of values in this region is displayed above the plot:</p><pre class="language-matlab">
 <span class="keyword">function</span> windowing_demo
 
@@ -201,14 +203,69 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 <span class="keyword">end</span>
 
-</pre><p>This demo illustrates a situation similar to how GUIs are created through <a href="https://www.mathworks.com/help/matlab/guide-or-matlab-functions.html">GUIDE</a>, where object handles are stored in a <tt>handles</tt> structure and passed as an extra parameter to callback functions. The code creates a figure, axes, two plots of data, and two vertical marker lines that define lower and upper bounds on a subset of the plotted data. These two lines are added to the <tt>MouseManager</tt> object with an associated callback for 'drag' operations using the left ('normal' selection) mouse button. This callback function was added as a cell array with the first entry being a function handle to the local function <tt>move_line</tt> and the second entry being the structure of object handles <tt>handles</tt>. Here's what the <tt>windowing_demo</tt> function will display in the command window when run:</p><pre class="language-matlab">mmObject =
+</pre><p>This demo illustrates a situation similar to how GUIs are created through <a href="https://www.mathworks.com/help/matlab/guide-or-matlab-functions.html">GUIDE</a>, where object handles are stored in a <tt>handles</tt> structure and passed as an extra parameter to callback functions. The code creates a figure, axes, two plots of data, and two vertical marker lines that define lower and upper bounds on a subset of the plotted data. These two lines are added to the <tt>MouseManager</tt> object with an associated callback for 'drag' operations using the left ('normal' selection) mouse button. This callback function is added as a cell array with the first entry being a function handle to the local function <tt>move_line</tt> and the second entry being the structure of object handles <tt>handles</tt>. Here's what the <tt>windowing_demo</tt> function will display in the command window when run:</p><pre class="language-matlab">mmObject =
 </pre><pre>   MouseManager object:</pre><pre>           hFigure: 'Windowing Demo'
            enabled: 1
    defaultHoverFcn: []</pre><pre>             Item (Tag)  |  operation___selection___callbackFcn
    ----------------------+--------------------------------------------------
-           line (LOWER)  |  ___drag______normal___{move_line, ...}
+           line (LOWER)  |  ___drag______normal___{@move_line, ...}
    ----------------------+--------------------------------------------------
-           line (UPPER)  |  ___drag______normal___{move_line, ...}</pre><h2 id="9">Displaying information while hovering over an axes</h2><h2 id="10">3D interaction using camera operations</h2><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016b</a><br></p></div><!--
+           line (UPPER)  |  ___drag______normal___{@move_line, ...}</pre><h2 id="9">Displaying information while hovering over an axes</h2><p>The code for this demo is included below and can be found in the file <tt>hovering_demo.m</tt>. After running the code, an image will be displayed in a figure window. When you hover the mouse over the image, text will appear above the cursor displaying the RGB triple for the pixel beneath the cursor pointer. This text only appears over the image and no where else in the figure.</p><pre class="language-matlab">
+<span class="keyword">function</span> hovering_demo
+
+  <span class="comment">% Load image:</span>
+  demoImage = imread(<span class="string">'peppers.png'</span>);
+  [nRows, nColumns, ~] = size(demoImage);
+
+  <span class="comment">% Create figure and graphics objects:</span>
+  hFigure = figure(<span class="string">'Name'</span>, <span class="string">'Hovering Demo'</span>, <span class="string">'NumberTitle'</span>, <span class="string">'off'</span>);
+  hAxes = axes(hFigure, <span class="string">'Color'</span>, <span class="string">'k'</span>, <span class="keyword">...</span>
+                        <span class="string">'DataAspectRatio'</span>, [1 1 1], <span class="keyword">...</span>
+                        <span class="string">'NextPlot'</span>, <span class="string">'add'</span>, <span class="keyword">...</span>
+                        <span class="string">'Tag'</span>, <span class="string">'AXES_1'</span>, <span class="keyword">...</span>
+                        <span class="string">'XColor'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
+                        <span class="string">'XLim'</span>, [0.5 nColumns+0.5], <span class="keyword">...</span>
+                        <span class="string">'YColor'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
+                        <span class="string">'YDir'</span>, <span class="string">'reverse'</span>, <span class="keyword">...</span>
+                        <span class="string">'YLim'</span>, [0.5 nRows+0.5]);
+  image(hAxes, demoImage);
+  hText = text(hAxes, 1, 1, <span class="string">''</span>, <span class="string">'Color'</span>, [0 0.8 0.8], <span class="keyword">...</span>
+                                <span class="string">'HorizontalAlignment'</span>, <span class="string">'center'</span>, <span class="keyword">...</span>
+                                <span class="string">'VerticalAlignment'</span>, <span class="string">'bottom'</span>);
+
+  <span class="comment">% Create MouseManager and intialize:</span>
+  mmObject = MouseManager(hFigure);
+  mmObject.add_item(hAxes, <span class="string">'hover'</span>, @display_rgb);
+  mmObject.default_hover_fcn(@clear_display);
+  mmObject.enable(true);
+  display(mmObject);
+
+  <span class="comment">% Nested functions:</span>
+
+  <span class="keyword">function</span> display_rgb(hSource, ~)
+    axesPoint = get(hSource, <span class="string">'CurrentPoint'</span>);
+    axesPoint = round(axesPoint(1, 1:2));
+    <span class="keyword">if</span> any(axesPoint &lt; [1 1]) || any(axesPoint &gt; [nColumns nRows])
+      set(hText, <span class="string">'String'</span>, <span class="string">''</span>);
+    <span class="keyword">else</span>
+      pixelData = demoImage(axesPoint(2), axesPoint(1), 1:3);
+      set(hText, <span class="string">'Position'</span>, [axesPoint 0], <span class="keyword">...</span>
+                 <span class="string">'String'</span>, sprintf(<span class="string">'(%d,%d,%d)'</span>, pixelData(:)));
+    <span class="keyword">end</span>
+  <span class="keyword">end</span>
+
+  <span class="keyword">function</span> clear_display(~, ~)
+    set(hText, <span class="string">'String'</span>, <span class="string">''</span>);
+  <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+
+</pre><p>This demo illustrates the use of a default hover function for the figure window. The axes is first added to <tt>mmObject</tt> as a managed object with a callback function <tt>display_rgb</tt> for 'hover' operations. Then the <tt>default_hover_fcn</tt> method is used to add <tt>clear_display</tt> as a default hover function that executes whenever the cursor is not hovering over and other managed object. Here's the <tt>MouseManager</tt> object information that the <tt>hovering_demo</tt> function will display in the command window:</p><pre class="language-matlab">mmObject =
+</pre><pre>   MouseManager object:</pre><pre>           hFigure: 'Hovering Demo'
+           enabled: 1
+   defaultHoverFcn: @hovering_demo/clear_display</pre><pre>             Item (Tag)  |  operation___selection___callbackFcn
+   ----------------------+--------------------------------------------------
+          axes (AXES_1)  |  ___hover_____@hovering_demo/display_rgb</pre><p>The <tt>display_rgb</tt> function is evaluated when the cursor is over the axes, specifically when the axes 'CurrentPoint' property is over a pixel of the plotted image. If the cursor moves off the edge of the image, that movement might take it off the edge of the axes object as well. That would mean the <tt>display_rgb</tt> function wouldn't be evaluated again, and the last displayed text would still remain in its previous position. The use of the default hover function <tt>clear_display</tt> is necessary in this case to ensure the text is removed when the cursor moves off the axes.</p><h2 id="12">3D interaction using camera operations</h2><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016b</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% |MouseManager| demo
 % The |MouseManager| class provides a general-purpose, easy-to-use
@@ -228,7 +285,6 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % out, and double-click to reset to the default view:
 % 
 % <include>panning_demo.m</include>
-%
 
 %%
 % First, the code loads an image and displays it in a figure window. A
@@ -310,12 +366,12 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % 
 %               Item (Tag)  |  operation___selection___callbackFcn
 %     REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH+REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
-%            axes (AXES_1)  |  ___click_____normal___panning_demo/pan_image
-%                           |   |         \_open_____panning_demo/reset_image
-%                           |   \_drag______normal___panning_demo/pan_image
-%                           |   \_release___normal___panning_demo/pan_image
-%                           |   \_hover_____panning_demo/pan_image   
-%                           |   \_scroll____panning_demo/zoom_image
+%            axes (AXES_1)  |  ___click_____normal___@panning_demo/pan_image
+%                           |   |         \_open_____@panning_demo/reset_image
+%                           |   \_drag______normal___@panning_demo/pan_image
+%                           |   \_release___normal___@panning_demo/pan_image
+%                           |   \_hover_____@panning_demo/pan_image   
+%                           |   \_scroll____@panning_demo/zoom_image
 %
 % In addition to listing the name of the associated figure window, enabled
 % state of the |MouseManager| object, and the default hover function (see
@@ -345,10 +401,10 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 %
 %               Item (Tag)  |  operation___selection___callbackFcn
 %     REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH+REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
-%            axes (AXES_1)  |  ___click_____normal___panning_demo/pan_image
-%                           |   |         \_open_____panning_demo/reset_image
-%                           |   \_drag______normal___panning_demo/pan_image
-%                           |   \_scroll____panning_demo/zoom_image
+%            axes (AXES_1)  |  ___click_____normal___@panning_demo/pan_image
+%                           |   |         \_open_____@panning_demo/reset_image
+%                           |   \_drag______normal___@panning_demo/pan_image
+%                           |   \_scroll____@panning_demo/zoom_image
 %
 % There is a lot of flexibility in defining callbacks. You could specify a
 % separate callback for every individual operation/selection combination,
@@ -375,7 +431,6 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % mean of values in this region is displayed above the plot:
 %
 % <include>windowing_demo.m</include>
-%
 
 %%
 % This demo illustrates a situation similar to how GUIs are created through
@@ -386,7 +441,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % define lower and upper bounds on a subset of the plotted data. These two
 % lines are added to the |MouseManager| object with an associated callback
 % for 'drag' operations using the left ('normal' selection) mouse button.
-% This callback function was added as a cell array with the first entry
+% This callback function is added as a cell array with the first entry
 % being a function handle to the local function |move_line| and the second
 % entry being the structure of object handles |handles|. Here's what the
 % |windowing_demo| function will display in the command window when run:
@@ -401,12 +456,50 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % 
 %               Item (Tag)  |  operation___selection___callbackFcn
 %     REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH+REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
-%             line (LOWER)  |  ___drag______normal___{move_line, ...}
+%             line (LOWER)  |  ___drag______normal___{@move_line, ...}
 %     REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH+REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
-%             line (UPPER)  |  ___drag______normal___{move_line, ...}
+%             line (UPPER)  |  ___drag______normal___{@move_line, ...}
 
 %% Displaying information while hovering over an axes
+% The code for this demo is included below and can be found in the file
+% |hovering_demo.m|. After running the code, an image will be displayed in
+% a figure window. When you hover the mouse over the image, text will
+% appear above the cursor displaying the RGB triple for the pixel beneath
+% the cursor pointer. This text only appears over the image and no where
+% else in the figure.
 %
+% <include>hovering_demo.m</include>
+
+%%
+% This demo illustrates the use of a default hover function for the figure
+% window. The axes is first added to |mmObject| as a managed object with a
+% callback function |display_rgb| for 'hover' operations. Then the
+% |default_hover_fcn| method is used to add |clear_display| as a default
+% hover function that executes whenever the cursor is not hovering over and
+% other managed object. Here's the |MouseManager| object information that
+% the |hovering_demo| function will display in the command window:
+%
+%   mmObject = 
+% 
+%     MouseManager object:
+% 
+%             hFigure: 'Hovering Demo'
+%             enabled: 1
+%     defaultHoverFcn: @hovering_demo/clear_display
+% 
+%               Item (Tag)  |  operation___selection___callbackFcn
+%     REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH+REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+%            axes (AXES_1)  |  ___hover_____@hovering_demo/display_rgb
+
+%%
+% The |display_rgb| function is evaluated when the cursor is over the axes,
+% specifically when the axes 'CurrentPoint' property is over a pixel of the
+% plotted image. If the cursor moves off the edge of the image, that
+% movement might take it off the edge of the axes object as well. That
+% would mean the |display_rgb| function wouldn't be evaluated again, and
+% the last displayed text would still remain in its previous position. The
+% use of the default hover function |clear_display| is necessary in this
+% case to ensure the text is removed when the cursor moves off the axes.
 
 %% 3D interaction using camera operations
 %

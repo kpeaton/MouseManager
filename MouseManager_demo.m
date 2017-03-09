@@ -16,7 +16,6 @@
 % out, and double-click to reset to the default view:
 % 
 % <include>panning_demo.m</include>
-%
 
 %%
 % First, the code loads an image and displays it in a figure window. A
@@ -98,12 +97,12 @@
 % 
 %               Item (Tag)  |  operation___selection___callbackFcn
 %     ----------------------+--------------------------------------------------
-%            axes (AXES_1)  |  ___click_____normal___panning_demo/pan_image
-%                           |   |         \_open_____panning_demo/reset_image
-%                           |   \_drag______normal___panning_demo/pan_image
-%                           |   \_release___normal___panning_demo/pan_image
-%                           |   \_hover_____panning_demo/pan_image   
-%                           |   \_scroll____panning_demo/zoom_image
+%            axes (AXES_1)  |  ___click_____normal___@panning_demo/pan_image
+%                           |   |         \_open_____@panning_demo/reset_image
+%                           |   \_drag______normal___@panning_demo/pan_image
+%                           |   \_release___normal___@panning_demo/pan_image
+%                           |   \_hover_____@panning_demo/pan_image   
+%                           |   \_scroll____@panning_demo/zoom_image
 %
 % In addition to listing the name of the associated figure window, enabled
 % state of the |MouseManager| object, and the default hover function (see
@@ -133,10 +132,10 @@
 %
 %               Item (Tag)  |  operation___selection___callbackFcn
 %     ----------------------+--------------------------------------------------
-%            axes (AXES_1)  |  ___click_____normal___panning_demo/pan_image
-%                           |   |         \_open_____panning_demo/reset_image
-%                           |   \_drag______normal___panning_demo/pan_image
-%                           |   \_scroll____panning_demo/zoom_image
+%            axes (AXES_1)  |  ___click_____normal___@panning_demo/pan_image
+%                           |   |         \_open_____@panning_demo/reset_image
+%                           |   \_drag______normal___@panning_demo/pan_image
+%                           |   \_scroll____@panning_demo/zoom_image
 %
 % There is a lot of flexibility in defining callbacks. You could specify a
 % separate callback for every individual operation/selection combination,
@@ -163,7 +162,6 @@
 % mean of values in this region is displayed above the plot:
 %
 % <include>windowing_demo.m</include>
-%
 
 %%
 % This demo illustrates a situation similar to how GUIs are created through
@@ -174,7 +172,7 @@
 % define lower and upper bounds on a subset of the plotted data. These two
 % lines are added to the |MouseManager| object with an associated callback
 % for 'drag' operations using the left ('normal' selection) mouse button.
-% This callback function was added as a cell array with the first entry
+% This callback function is added as a cell array with the first entry
 % being a function handle to the local function |move_line| and the second
 % entry being the structure of object handles |handles|. Here's what the
 % |windowing_demo| function will display in the command window when run:
@@ -189,12 +187,50 @@
 % 
 %               Item (Tag)  |  operation___selection___callbackFcn
 %     ----------------------+--------------------------------------------------
-%             line (LOWER)  |  ___drag______normal___{move_line, ...}
+%             line (LOWER)  |  ___drag______normal___{@move_line, ...}
 %     ----------------------+--------------------------------------------------
-%             line (UPPER)  |  ___drag______normal___{move_line, ...}
+%             line (UPPER)  |  ___drag______normal___{@move_line, ...}
 
 %% Displaying information while hovering over an axes
+% The code for this demo is included below and can be found in the file
+% |hovering_demo.m|. After running the code, an image will be displayed in
+% a figure window. When you hover the mouse over the image, text will
+% appear above the cursor displaying the RGB triple for the pixel beneath
+% the cursor pointer. This text only appears over the image and no where
+% else in the figure.
 %
+% <include>hovering_demo.m</include>
+
+%%
+% This demo illustrates the use of a default hover function for the figure
+% window. The axes is first added to |mmObject| as a managed object with a
+% callback function |display_rgb| for 'hover' operations. Then the
+% |default_hover_fcn| method is used to add |clear_display| as a default
+% hover function that executes whenever the cursor is not hovering over and
+% other managed object. Here's the |MouseManager| object information that
+% the |hovering_demo| function will display in the command window:
+%
+%   mmObject = 
+% 
+%     MouseManager object:
+% 
+%             hFigure: 'Hovering Demo'
+%             enabled: 1
+%     defaultHoverFcn: @hovering_demo/clear_display
+% 
+%               Item (Tag)  |  operation___selection___callbackFcn
+%     ----------------------+--------------------------------------------------
+%            axes (AXES_1)  |  ___hover_____@hovering_demo/display_rgb
+
+%%
+% The |display_rgb| function is evaluated when the cursor is over the axes,
+% specifically when the axes 'CurrentPoint' property is over a pixel of the
+% plotted image. If the cursor moves off the edge of the image, that
+% movement might take it off the edge of the axes object as well. That
+% would mean the |display_rgb| function wouldn't be evaluated again, and
+% the last displayed text would still remain in its previous position. The
+% use of the default hover function |clear_display| is necessary in this
+% case to ensure the text is removed when the cursor moves off the axes.
 
 %% 3D interaction using camera operations
 %
