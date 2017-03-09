@@ -15,10 +15,6 @@ classdef MouseManager < handle
 %            MouseManager.default_hover_fcn, MouseManager.enable,
 %            MouseManager.delete.
 
-% TODO:
-% - Make MouseManager_demo:
-%   - 3D interaction using camera operations
-
 % Author: Ken Eaton
 % Version: MATLAB R2016b
 % Last modified: 3/9/17

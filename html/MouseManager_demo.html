@@ -137,7 +137,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
                          |   \_drag______normal___@panning_demo/pan_image
                          |   \_release___normal___@panning_demo/pan_image
                          |   \_hover_____@panning_demo/pan_image
-                         |   \_scroll____@panning_demo/zoom_image</pre><p>In addition to listing the name of the associated figure window, enabled state of the <tt>MouseManager</tt> object, and the default hover function (see the <b>Displaying information while hovering over an axes</b> section below for more detail about this), a table of managed items and their associated callbacks are displayed. The type of object and its 'Tag' property, if it has one, is displayed along with a heirarchy of operations, mouse selections, and callback functions.</p><p>Note that the <tt>pan_image</tt> callback is defined for 'click', 'drag', 'release', and 'hover' operations. When we added this callback, we only specified the 'normal' selection and no operation arguments:</p><pre class="language-matlab">mmObject.add_item(hAxes, <span class="string">'normal'</span>, @pan_image, <span class="keyword">...</span>
+                         |   \_scroll____@panning_demo/zoom_image</pre><p>In addition to listing the name of the associated figure window, enabled state of the <tt>MouseManager</tt> object, and the default hover function (see the <a href="MouseManager_demo.html#9"><b>Displaying information while hovering over an axes</b></a> section below for more detail about this), a table of managed items and their associated callbacks are displayed. The type of object and its 'Tag' property, if it has one, is displayed along with a heirarchy of operations, mouse selections, and callback functions.</p><p>Note that the <tt>pan_image</tt> callback is defined for 'click', 'drag', 'release', and 'hover' operations. When we added this callback, we only specified the 'normal' selection and no operation arguments:</p><pre class="language-matlab">mmObject.add_item(hAxes, <span class="string">'normal'</span>, @pan_image, <span class="keyword">...</span>
 </pre><p>As such, <b>all</b> possible operations were set to use <tt>pan_image</tt>. This includes the 'scroll' operation, although we subsequently overwrote that with <tt>zoom_image</tt> when we specified a 'scroll' operation callback. Since <tt>pan_image</tt> doesn't do anything for 'release' or 'hover' operations, we could be more specific when we add the callbacks, like so:</p><pre class="language-matlab">mmObject.add_item(hAxes, {<span class="string">'click'</span>, <span class="string">'drag'</span>}, <span class="string">'normal'</span>, @pan_image, <span class="keyword">...</span>
                          <span class="string">'scroll'</span>, @zoom_image, <span class="keyword">...</span>
                          <span class="string">'click'</span>, <span class="string">'open'</span>, @reset_image);
@@ -265,7 +265,94 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
            enabled: 1
    defaultHoverFcn: @hovering_demo/clear_display</pre><pre>             Item (Tag)  |  operation___selection___callbackFcn
    ----------------------+--------------------------------------------------
-          axes (AXES_1)  |  ___hover_____@hovering_demo/display_rgb</pre><p>The <tt>display_rgb</tt> function is evaluated when the cursor is over the axes, specifically when the axes 'CurrentPoint' property is over a pixel of the plotted image. If the cursor moves off the edge of the image, that movement might take it off the edge of the axes object as well. That would mean the <tt>display_rgb</tt> function wouldn't be evaluated again, and the last displayed text would still remain in its previous position. The use of the default hover function <tt>clear_display</tt> is necessary in this case to ensure the text is removed when the cursor moves off the axes.</p><h2 id="12">3D interaction using camera operations</h2><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016b</a><br></p></div><!--
+          axes (AXES_1)  |  ___hover_____@hovering_demo/display_rgb</pre><p>The <tt>display_rgb</tt> function is evaluated when the cursor is over the axes, specifically when the axes 'CurrentPoint' property is over a pixel of the plotted image. If the cursor moves off the edge of the image, that movement might take it off the edge of the axes object as well. That would mean the <tt>display_rgb</tt> function wouldn't be evaluated again, and the last displayed text would still remain in its previous position. The use of the default hover function <tt>clear_display</tt> is necessary in this case to ensure the text is removed when the cursor moves off the axes.</p><h2 id="12">3D interaction using camera operations</h2><p>The code for this demo is included below and can be found in the file <tt>camera_demo.m</tt>. After running the code, a 3-D plot of the <a href="https://www.mathworks.com/help/matlab/ref/peaks.html"><tt>peaks</tt></a> function will be displayed in a figure window:</p><pre class="language-matlab">
+<span class="keyword">function</span> camera_demo
+
+  <span class="comment">% Sample data:</span>
+  [X, Y, Z] = peaks();
+
+  <span class="comment">% Create figure and graphics objects:</span>
+  hFigure = figure(<span class="string">'Color'</span>, <span class="string">'k'</span>, <span class="string">'Name'</span>, <span class="string">'Camera Demo'</span>, <span class="keyword">...</span>
+                   <span class="string">'NumberTitle'</span>, <span class="string">'off'</span>);
+  hAxes = axes(hFigure, <span class="string">'CameraPosition'</span>, [-10 -10 10], <span class="keyword">...</span>
+                        <span class="string">'CameraTarget'</span>, [0 0 0], <span class="keyword">...</span>
+                        <span class="string">'CameraUpVector'</span>, [0 0 1], <span class="keyword">...</span>
+                        <span class="string">'CameraViewAngle'</span>, 30, <span class="keyword">...</span>
+                        <span class="string">'Color'</span>, <span class="string">'k'</span>, <span class="keyword">...</span>
+                        <span class="string">'DataAspectRatio'</span>, [1 1 2], <span class="keyword">...</span>
+                        <span class="string">'NextPlot'</span>, <span class="string">'add'</span>, <span class="keyword">...</span>
+                        <span class="string">'Position'</span>, [0 0 1 1], <span class="keyword">...</span>
+                        <span class="string">'Projection'</span>, <span class="string">'perspective'</span>, <span class="keyword">...</span>
+                        <span class="string">'Tag'</span>, <span class="string">'AXES_1'</span>, <span class="keyword">...</span>
+                        <span class="string">'XColor'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
+                        <span class="string">'XLim'</span>, [-3 3], <span class="keyword">...</span>
+                        <span class="string">'YColor'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
+                        <span class="string">'YLim'</span>, [-3 3], <span class="keyword">...</span>
+                        <span class="string">'ZColor'</span>, <span class="string">'none'</span>, <span class="keyword">...</span>
+                        <span class="string">'ZLim'</span>, [-7 9]);
+  hSurf = surf(hAxes, X, Y, Z, del2(Z));
+  set(hSurf, <span class="string">'EdgeColor'</span>, <span class="string">'none'</span>);
+
+  <span class="comment">% Create MouseManager and intialize:</span>
+  mmObject = MouseManager(hFigure);
+  mmObject.add_item(hAxes, {<span class="string">'click'</span>, <span class="string">'drag'</span>}, <span class="string">'normal'</span>, @orbit_camera, <span class="keyword">...</span>
+                           {<span class="string">'click'</span>, <span class="string">'drag'</span>}, <span class="string">'alt'</span>, @dolly_camera, <span class="keyword">...</span>
+                           <span class="string">'click'</span>, <span class="string">'open'</span>, @reset_camera, <span class="keyword">...</span>
+                           <span class="string">'scroll'</span>, @zoom_camera);
+  mmObject.enable(true);
+  display(mmObject);
+
+  <span class="comment">% Nested functions:</span>
+
+  <span class="keyword">function</span> orbit_camera(hObject, eventData)
+    <span class="keyword">persistent</span> orbitOrigin orbitScale
+    <span class="keyword">switch</span> eventData.operation
+      <span class="keyword">case</span> <span class="string">'click'</span>
+        orbitOrigin = eventData.figurePoint;
+        orbitScale = [360 180]./eventData.figureRegion(3:4);
+      <span class="keyword">case</span> <span class="string">'drag'</span>
+        offset = orbitScale.*(orbitOrigin-eventData.figurePoint);
+        orbitOrigin = eventData.figurePoint;
+        camorbit(hObject, offset(1), offset(2));
+    <span class="keyword">end</span>
+  <span class="keyword">end</span>
+
+  <span class="keyword">function</span> dolly_camera(hObject, eventData)
+    <span class="keyword">persistent</span> dollyOrigin
+    <span class="keyword">switch</span> eventData.operation
+      <span class="keyword">case</span> <span class="string">'click'</span>
+        dollyOrigin = eventData.figurePoint;
+      <span class="keyword">case</span> <span class="string">'drag'</span>
+        offset = (dollyOrigin-eventData.figurePoint)./200;
+        dollyOrigin = eventData.figurePoint;
+        camdolly(hObject, offset(1), offset(2), 0);
+    <span class="keyword">end</span>
+  <span class="keyword">end</span>
+
+  <span class="keyword">function</span> zoom_camera(hObject, eventData)
+    camzoom(hObject, 1-0.1*eventData.scrollEventData.VerticalScrollCount);
+  <span class="keyword">end</span>
+
+  <span class="keyword">function</span> reset_camera(hObject, ~)
+    set(hObject, <span class="string">'CameraPosition'</span>, [-10 -10 10], <span class="keyword">...</span>
+                 <span class="string">'CameraTarget'</span>, [0 0 0], <span class="keyword">...</span>
+                 <span class="string">'CameraUpVector'</span>, [0 0 1], <span class="keyword">...</span>
+                 <span class="string">'CameraViewAngle'</span>, 30);
+  <span class="keyword">end</span>
+
+<span class="keyword">end</span>
+
+</pre><p>Clicking and dragging with the left ('normal') mouse button will invoke the <tt>orbit_camera</tt> function, which rotates the camera both horizontally and vertically around its target point. Clicking and dragging with the right ('alt') mouse button will invoke the <tt>dolly_camera</tt> function, which will shift the camera and its target point laterally and up and down. Double-clicking ('open') any mouse button will invoke the <tt>reset_camera</tt> function to reset the image to its default view, and scrolling with the mouse wheel will invoke the <tt>zoom_camera</tt> function to adjust the camera view angle. Here's the <tt>MouseManager</tt> object information that the <tt>camera_demo</tt> function will display in the command window:</p><pre class="language-matlab">mmObject =
+</pre><pre>   MouseManager object:</pre><pre>           hFigure: 'Camera Demo'
+           enabled: 1
+   defaultHoverFcn: []</pre><pre>             Item (Tag)  |  operation___selection___callbackFcn
+   ----------------------+--------------------------------------------------
+          axes (AXES_1)  |  ___click_____normal___@camera_demo/orbit_camera
+                         |   |         \_alt______@camera_demo/dolly_camera
+                         |   |         \_open_____@camera_demo/reset_camera
+                         |   \_drag______normal___@camera_demo/orbit_camera
+                         |   |         \_alt______@camera_demo/dolly_camera
+                         |   \_scroll____@camera_demo/zoom_camera</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016b</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% |MouseManager| demo
 % The |MouseManager| class provides a general-purpose, easy-to-use
@@ -375,11 +462,11 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 %
 % In addition to listing the name of the associated figure window, enabled
 % state of the |MouseManager| object, and the default hover function (see
-% the *Displaying information while hovering over an axes* section below
-% for more detail about this), a table of managed items and their
-% associated callbacks are displayed. The type of object and its 'Tag'
-% property, if it has one, is displayed along with a heirarchy of
-% operations, mouse selections, and callback functions.
+% the <MouseManager_demo.html#9 *Displaying information while hovering over
+% an axes*> section below for more detail about this), a table of managed
+% items and their associated callbacks are displayed. The type of object
+% and its 'Tag' property, if it has one, is displayed along with a
+% heirarchy of operations, mouse selections, and callback functions.
 %
 % Note that the |pan_image| callback is defined for 'click', 'drag',
 % 'release', and 'hover' operations. When we added this callback, we only
@@ -502,6 +589,40 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 % case to ensure the text is removed when the cursor moves off the axes.
 
 %% 3D interaction using camera operations
+% The code for this demo is included below and can be found in the file
+% |camera_demo.m|. After running the code, a 3-D plot of the
+% <https://www.mathworks.com/help/matlab/ref/peaks.html |peaks|> function
+% will be displayed in a figure window:
 %
+% <include>camera_demo.m</include>
+
+%%
+% Clicking and dragging with the left ('normal') mouse button will invoke
+% the |orbit_camera| function, which rotates the camera both horizontally
+% and vertically around its target point. Clicking and dragging with the
+% right ('alt') mouse button will invoke the |dolly_camera| function, which
+% will shift the camera and its target point laterally and up and down.
+% Double-clicking ('open') any mouse button will invoke the |reset_camera|
+% function to reset the image to its default view, and scrolling with the
+% mouse wheel will invoke the |zoom_camera| function to adjust the camera
+% view angle. Here's the |MouseManager| object information that the
+% |camera_demo| function will display in the command window:
+%
+%   mmObject = 
+% 
+%     MouseManager object:
+% 
+%             hFigure: 'Camera Demo'
+%             enabled: 1
+%     defaultHoverFcn: []
+% 
+%               Item (Tag)  |  operation___selection___callbackFcn
+%     REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH+REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+%            axes (AXES_1)  |  ___click_____normal___@camera_demo/orbit_camera
+%                           |   |         \_alt______@camera_demo/dolly_camera
+%                           |   |         \_open_____@camera_demo/reset_camera
+%                           |   \_drag______normal___@camera_demo/orbit_camera
+%                           |   |         \_alt______@camera_demo/dolly_camera
+%                           |   \_scroll____@camera_demo/zoom_camera
 ##### SOURCE END #####
 --></body></html>

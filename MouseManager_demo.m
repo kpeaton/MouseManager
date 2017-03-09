@@ -106,11 +106,11 @@
 %
 % In addition to listing the name of the associated figure window, enabled
 % state of the |MouseManager| object, and the default hover function (see
-% the *Displaying information while hovering over an axes* section below
-% for more detail about this), a table of managed items and their
-% associated callbacks are displayed. The type of object and its 'Tag'
-% property, if it has one, is displayed along with a heirarchy of
-% operations, mouse selections, and callback functions.
+% the <MouseManager_demo.html#9 *Displaying information while hovering over
+% an axes*> section below for more detail about this), a table of managed
+% items and their associated callbacks are displayed. The type of object
+% and its 'Tag' property, if it has one, is displayed along with a
+% heirarchy of operations, mouse selections, and callback functions.
 %
 % Note that the |pan_image| callback is defined for 'click', 'drag',
 % 'release', and 'hover' operations. When we added this callback, we only
@@ -233,4 +233,38 @@
 % case to ensure the text is removed when the cursor moves off the axes.
 
 %% 3D interaction using camera operations
+% The code for this demo is included below and can be found in the file
+% |camera_demo.m|. After running the code, a 3-D plot of the
+% <https://www.mathworks.com/help/matlab/ref/peaks.html |peaks|> function
+% will be displayed in a figure window:
 %
+% <include>camera_demo.m</include>
+
+%%
+% Clicking and dragging with the left ('normal') mouse button will invoke
+% the |orbit_camera| function, which rotates the camera both horizontally
+% and vertically around its target point. Clicking and dragging with the
+% right ('alt') mouse button will invoke the |dolly_camera| function, which
+% will shift the camera and its target point laterally and up and down.
+% Double-clicking ('open') any mouse button will invoke the |reset_camera|
+% function to reset the image to its default view, and scrolling with the
+% mouse wheel will invoke the |zoom_camera| function to adjust the camera
+% view angle. Here's the |MouseManager| object information that the
+% |camera_demo| function will display in the command window:
+%
+%   mmObject = 
+% 
+%     MouseManager object:
+% 
+%             hFigure: 'Camera Demo'
+%             enabled: 1
+%     defaultHoverFcn: []
+% 
+%               Item (Tag)  |  operation___selection___callbackFcn
+%     ----------------------+--------------------------------------------------
+%            axes (AXES_1)  |  ___click_____normal___@camera_demo/orbit_camera
+%                           |   |         \_alt______@camera_demo/dolly_camera
+%                           |   |         \_open_____@camera_demo/reset_camera
+%                           |   \_drag______normal___@camera_demo/orbit_camera
+%                           |   |         \_alt______@camera_demo/dolly_camera
+%                           |   \_scroll____@camera_demo/zoom_camera
